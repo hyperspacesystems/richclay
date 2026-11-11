@@ -1630,7 +1630,6 @@ var RichClayBundle = (() => {
       const reposition = () => this.position();
       const onKeydown = (event) => {
         if (event.key !== "Escape" || !this.root) return;
-        event.preventDefault();
         this.dismissed = this.anchor;
         this.hide();
       };

@@ -114,9 +114,10 @@ export class LinkPopover {
     this.root = root;
 
     const reposition = () => this.position();
+    // The bar opens by itself whenever the caret is in a link, so Escape hides it and still
+    // reaches whatever the person meant to close (a modal dialog around the editor).
     const onKeydown = event => {
       if (event.key !== "Escape" || !this.root) return;
-      event.preventDefault();
       this.dismissed = this.anchor;
       this.hide();
     };

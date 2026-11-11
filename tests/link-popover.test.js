@@ -146,8 +146,10 @@ test("Escape hides the bar until the caret has left that link and come back", ()
   const anchor = element.querySelector("a");
   caretIn(editor, anchor.firstChild, 1);
 
-  element.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+  const escape = new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  element.dispatchEvent(escape);
   assert.equal(popover(), null);
+  assert.equal(escape.defaultPrevented, false, "Escape still reaches a modal dialog around the editor");
 
   caretIn(editor, anchor.firstChild, 2);
   assert.equal(popover(), null);
