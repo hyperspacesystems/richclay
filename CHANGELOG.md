@@ -32,6 +32,16 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-11
+
+### Added
+- A link popover for viewing and editing a link where it sits in the document.
+- Link-label mode for shared navigation links, so a shared link can show its own label.
+- Relative file names are accepted in the link form.
+
+### Fixed
+- Escape closes the link popover and still reaches a modal dialog open around the editor, so the dialog closes too.
+
 ## [0.7.0] - 2026-10-30
 
 ### Added
