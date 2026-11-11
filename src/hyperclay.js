@@ -27,7 +27,7 @@ export function isRichClayHost(el) {
   return el.matches(RICHCLAY_OPT_IN);
 }
 export const CHROME_SELECTOR =
-  "[data-richclay-toolbar], [data-richclay-menu], [data-richclay-dialog], [data-richclay-live], [data-richclay-float]";
+  "[data-richclay-toolbar], [data-richclay-menu], [data-richclay-dialog], [data-richclay-link-popover], [data-richclay-live], [data-richclay-float]";
 
 const runtimeClasses = [
   "richclay-editor",
@@ -148,6 +148,11 @@ export function parseEditableOptions(element) {
     toolbarOnSelect: tokens.has("toolbar-on-select")
   };
   if (tokens.has("no-toolbar")) options.toolbar = false;
+  if (tokens.has("link-label")) {
+    options.singleLine = true;
+    options.linkLabel = true;
+    options.toolbar = ["link", "undo", "redo"];
+  }
   return options;
 }
 

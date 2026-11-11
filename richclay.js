@@ -542,7 +542,7 @@ var RichClayBundle = (() => {
     if (!el.tagName.includes("-")) return true;
     return el.matches(RICHCLAY_OPT_IN);
   }
-  var CHROME_SELECTOR = "[data-richclay-toolbar], [data-richclay-menu], [data-richclay-dialog], [data-richclay-live], [data-richclay-float]";
+  var CHROME_SELECTOR = "[data-richclay-toolbar], [data-richclay-menu], [data-richclay-dialog], [data-richclay-link-popover], [data-richclay-live], [data-richclay-float]";
   var runtimeClasses = [
     "richclay-editor",
     "richclay-inline",
@@ -612,6 +612,11 @@ var RichClayBundle = (() => {
       toolbarOnSelect: tokens.has("toolbar-on-select")
     };
     if (tokens.has("no-toolbar")) options.toolbar = false;
+    if (tokens.has("link-label")) {
+      options.singleLine = true;
+      options.linkLabel = true;
+      options.toolbar = ["link", "undo", "redo"];
+    }
     return options;
   }
   function installHyperclayBridge(win = window) {
@@ -1448,12 +1453,15 @@ var RichClayBundle = (() => {
     const scheme = (stripped.match(/^([a-z][a-z0-9+.\-]*):/i) || [])[1];
     return !scheme || SAFE_URL_SCHEMES.has(scheme.toLowerCase());
   }
+  var SITE_FILE = /^[^\s/?#:]+\.(?:html?|pdf|txt|csv|json|xml|svg|png|jpe?g|gif|webp|docx?|xlsx?|pptx?|bib|tex|zip)(?:[?#]\S*)?$/i;
+  var SITE_PATH = /^[^\s/?#:.]+\/\S*$/;
   function normalizeUrl(value) {
     const raw = String(value == null ? "" : value).trim();
     if (!raw || !isSafeUrl(raw)) return "";
     if (/^(?:https?:|mailto:|tel:)/i.test(raw)) return raw;
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return `mailto:${raw}`;
     if (/^(?:[#?]|\/|\.{1,2}\/)/.test(raw)) return raw;
+    if (SITE_FILE.test(raw) || SITE_PATH.test(raw)) return raw;
     return `https://${raw}`;
   }
   function resolveDOMPurify(doc) {
@@ -1523,6 +1531,168 @@ var RichClayBundle = (() => {
     const last = fragment.lastChild;
     if (last?.nodeType === 3) last.nodeValue = last.nodeValue.replace(/\s+$/, "");
   }
+
+  // src/link-popover.js
+  var LINK_POPOVER_GRACE_MS = 300;
+  var shownAddress = (href) => href.replace(/^mailto:/i, "").replace(/^https?:\/\//i, "");
+  var LinkPopover = class {
+    constructor(editor) {
+      this.editor = editor;
+      this.root = null;
+      this.anchor = null;
+      this.href = null;
+      this.dismissed = null;
+      this.hideTimer = null;
+      this.pointerInside = false;
+      this.cleanup = null;
+    }
+    currentAnchor() {
+      const editor = this.editor;
+      if (!editor.active || editor.options.readOnly || editor.dialog) return null;
+      if (editor.element.ownerDocument.hidden) return null;
+      return editor.currentLinkElement();
+    }
+    update() {
+      const anchor = this.currentAnchor();
+      if (anchor && anchor === this.dismissed) return;
+      this.dismissed = null;
+      if (!anchor) {
+        this.scheduleHide();
+        return;
+      }
+      this.cancelHide();
+      this.show(anchor);
+    }
+    show(anchor) {
+      if (!this.root) this.mount();
+      const href = anchor.getAttribute("href") || "";
+      if (anchor !== this.anchor || href !== this.href) {
+        this.anchor = anchor;
+        this.href = href;
+        const address = this.root.querySelector(".richclay-link-address");
+        address.textContent = shownAddress(href) || href;
+        address.title = href;
+        if (href && isSafeUrl(href)) address.setAttribute("href", href);
+        else address.removeAttribute("href");
+        if (/^(?:mailto|tel):/i.test(href)) address.removeAttribute("target");
+        else address.setAttribute("target", "_blank");
+      }
+      this.position();
+    }
+    mount() {
+      const editor = this.editor;
+      const doc = editor.element.ownerDocument;
+      const win = doc.defaultView || globalThis;
+      const root = doc.createElement("div");
+      root.className = "richclay-dialog richclay-link-popover";
+      root.setAttribute("role", "group");
+      root.setAttribute("aria-label", "Link");
+      root.setAttribute("data-richclay-link-popover", "");
+      markChrome(root);
+      root.setAttribute("save-remove", "");
+      root.innerHTML = `
+      <a class="richclay-link-address" rel="noopener noreferrer"></a>
+      <button type="button" class="richclay-secondary" data-richclay-link-edit>Edit</button>
+      <button type="button" class="richclay-secondary" data-richclay-link-remove>Remove</button>
+    `;
+      if (editor.options.linkLabel) root.querySelector("[data-richclay-link-remove]").remove();
+      root.addEventListener("pointerdown", preservePointerSelection);
+      root.addEventListener("pointerenter", () => {
+        this.pointerInside = true;
+        this.cancelHide();
+      });
+      root.addEventListener("pointerleave", () => {
+        this.pointerInside = false;
+        this.update();
+      });
+      root.querySelector("[data-richclay-link-edit]").addEventListener("click", () => {
+        const anchor = this.anchor;
+        if (!anchor || !editor.element.contains(anchor)) return this.hide();
+        editor.selectElement(anchor);
+        editor.openLinkDialog();
+      });
+      root.querySelector("[data-richclay-link-remove]")?.addEventListener("click", () => {
+        const anchor = this.anchor;
+        this.hide();
+        editor.removeLinkElement(anchor);
+        editor.focus();
+      });
+      const host = editor.element.closest("dialog") || doc.body;
+      const layered = typeof root.showPopover === "function";
+      if (layered) root.setAttribute("popover", "manual");
+      pin(root, "position", "fixed");
+      pin(root, "inset", "0px auto auto 0px");
+      pin(root, "margin", "0");
+      pin(root, "overflow", "visible");
+      host.appendChild(root);
+      if (layered) root.showPopover();
+      this.root = root;
+      const reposition = () => this.position();
+      const onKeydown = (event) => {
+        if (event.key !== "Escape" || !this.root) return;
+        event.preventDefault();
+        this.dismissed = this.anchor;
+        this.hide();
+      };
+      doc.addEventListener("scroll", reposition, { capture: true, passive: true });
+      win.addEventListener("resize", reposition, { passive: true });
+      editor.element.addEventListener("keydown", onKeydown);
+      this.cleanup = () => {
+        doc.removeEventListener("scroll", reposition, { capture: true });
+        win.removeEventListener("resize", reposition);
+        editor.element.removeEventListener("keydown", onKeydown);
+      };
+    }
+    position() {
+      const root = this.root;
+      if (!root || !this.anchor) return;
+      const win = root.ownerDocument.defaultView || globalThis;
+      const placement = placePopover({
+        anchor: this.anchor.getBoundingClientRect(),
+        box: { width: root.offsetWidth || 0, height: root.offsetHeight || 0 },
+        viewport: {
+          width: win.visualViewport?.width ?? win.innerWidth,
+          height: win.visualViewport?.height ?? win.innerHeight
+        }
+      });
+      root.setAttribute("data-richclay-side", placement.side);
+      root.style.setProperty("--richclay-dialog-arrow", `${Math.round(placement.arrow)}px`);
+      pin(root, "transform", `translate(${Math.round(placement.x)}px, ${Math.round(placement.y)}px)`);
+    }
+    scheduleHide() {
+      if (!this.root || this.hideTimer !== null) return;
+      const win = this.root.ownerDocument.defaultView || globalThis;
+      this.hideTimer = win.setTimeout(() => {
+        this.hideTimer = null;
+        if (!this.pointerInside) this.hide();
+      }, LINK_POPOVER_GRACE_MS);
+    }
+    cancelHide() {
+      if (this.hideTimer === null) return;
+      const win = this.editor.element.ownerDocument.defaultView || globalThis;
+      win.clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+    onEditorBlur(event) {
+      const next = event?.relatedTarget;
+      if (next && this.editor.ownsFocusTarget(next)) return;
+      this.hide();
+    }
+    hide() {
+      this.cancelHide();
+      this.cleanup?.();
+      this.cleanup = null;
+      this.root?.remove();
+      this.root = null;
+      this.anchor = null;
+      this.href = null;
+      this.pointerInside = false;
+    }
+    destroy() {
+      this.hide();
+      this.dismissed = null;
+    }
+  };
 
   // src/styles.js
   var STYLE_ID = "richclay-styles";
@@ -1807,8 +1977,11 @@ var RichClayBundle = (() => {
     Squire: null,
     inline: false,
     singleLine: false,
-    toolbarOnSelect: false
+    toolbarOnSelect: false,
+    linkPopover: true,
+    linkLabel: false
   };
+  var LINK_LABEL_CONTROLS = ["link", "undo", "redo"];
   var RichClay = class _RichClay {
     static presets = presets;
     static selector = RICHCLAY_SELECTOR;
@@ -1834,6 +2007,7 @@ var RichClayBundle = (() => {
       this.description = null;
       this.dialog = null;
       this.dialogCleanup = null;
+      this.linkPopover = null;
       this.savedSelection = null;
       this.path = "";
       this.active = false;
@@ -1853,6 +2027,7 @@ var RichClayBundle = (() => {
       };
       this._onBlur = (event) => {
         this.element.classList.remove("richclay-focused");
+        this.linkPopover?.onEditorBlur(event);
         if (this.options.inline) this.scheduleFloatTeardown(event);
       };
       this._onLinkActivation = (event) => {
@@ -1863,6 +2038,13 @@ var RichClayBundle = (() => {
         const chrome = closestWithCapability(target, "history");
         if (chrome && chrome !== this.element && this.element.contains(chrome) && chrome.contains(anchor)) return;
         event.preventDefault();
+      };
+      this._onExternalWrite = () => {
+        if (!this._squire) return;
+        this._squire._mutation?.takeRecords();
+        if (this.options.linkLabel) this._labelHref = this.element.querySelector("a[href]")?.getAttribute("href") ?? this._labelHref;
+        this.resetSquireUndoBaseline();
+        this.updatePlaceholder();
       };
       this.ensureMarker();
       this.hyperclay = shouldUseHyperclay(this.options, this.window);
@@ -2063,6 +2245,7 @@ var RichClayBundle = (() => {
             const ignored = editor._ignoreChange;
             editor._docWasChanged();
             if (local && ignored) editor.fireEvent("input");
+            if (this.options.linkLabel) this.keepOneLink();
           } else if (local) {
             editor._mayHaveZWS = true;
             editor.fireEvent("input");
@@ -2091,6 +2274,7 @@ var RichClayBundle = (() => {
       this.maskSquireCodeShortcut();
       this.maskSquireBlockShortcuts();
       this.installShortcuts();
+      if (this.options.linkLabel) this.maskFormattingShortcuts();
       if (this.options.inline) {
         this._onToolbarKey = (event) => {
           if (event.altKey && event.key === "F10") {
@@ -2113,6 +2297,17 @@ var RichClayBundle = (() => {
         };
         this._squire.addEventListener("willPaste", willPaste);
         this._squireListeners.push(["willPaste", willPaste]);
+      }
+      if (this.options.linkLabel) {
+        const plainPaste = (event) => {
+          const fragment = event.detail?.fragment;
+          if (!fragment) return;
+          const text = fragment.textContent.replace(/\s+/g, " ");
+          fragment.replaceChildren(this.element.ownerDocument.createTextNode(text));
+        };
+        this._squire.addEventListener("willPaste", plainPaste);
+        this._squireListeners.push(["willPaste", plainPaste]);
+        this._labelHref = this.element.querySelector("a[href]")?.getAttribute("href") ?? null;
       }
       this.renderToolbar();
       this.updatePlaceholder();
@@ -2178,6 +2373,8 @@ var RichClayBundle = (() => {
     }
     destroy() {
       this.closeLinkDialog();
+      this.linkPopover?.destroy();
+      this.linkPopover = null;
       this.teardownFloatingToolbar();
       this.toolbar?.destroy();
       this.toolbar = null;
@@ -2420,6 +2617,7 @@ var RichClayBundle = (() => {
     openLinkDialog() {
       this.saveSelection();
       this.closeLinkDialog();
+      this.linkPopover?.hide();
       const doc = this.element.ownerDocument;
       const existingLink = this.currentLinkElement();
       const existing = existingLink?.getAttribute("href") || "";
@@ -2439,7 +2637,7 @@ var RichClayBundle = (() => {
         <input class="richclay-input" name="url" type="text" inputmode="url" autocomplete="url" placeholder="https://example.com">
       </label>
       <div class="richclay-dialog-actions">
-        ${existingLink ? '<button type="button" class="richclay-secondary" data-richclay-remove-link>Remove link</button>' : ""}
+        ${existingLink && !this.options.linkLabel ? '<button type="button" class="richclay-secondary" data-richclay-remove-link>Remove link</button>' : ""}
         <button type="button" class="richclay-secondary" data-richclay-cancel>Cancel</button>
         <button type="submit" class="richclay-primary">Apply</button>
       </div>
@@ -2448,16 +2646,17 @@ var RichClayBundle = (() => {
         this.closeLinkDialog();
         this.toolbar?.update();
         this.focus();
+        this.updateLinkPopover();
       };
       const remove = () => {
         this.restoreSelection();
-        const anchor = this.currentLinkElement();
-        if (anchor) {
-          this.selectElement(anchor);
-          this._squire.removeLink();
-          announce(this.liveRegion, "Link removed");
-        }
+        this.removeLinkElement(this.currentLinkElement());
         close();
+      };
+      const cancel = () => {
+        close();
+        this.restoreSelection();
+        this.updateLinkPopover();
       };
       dialog.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -2473,7 +2672,12 @@ var RichClayBundle = (() => {
           return;
         }
         this.restoreSelection();
-        const anchor = this.currentLinkElement();
+        const anchor = this.options.linkLabel ? null : this.currentLinkElement();
+        if (this.options.linkLabel) {
+          const range = this.element.ownerDocument.createRange();
+          range.selectNodeContents(this.element);
+          this._squire.setSelection(range);
+        }
         if (anchor) {
           this.selectElement(anchor);
           this._squire.saveUndoState();
@@ -2485,11 +2689,11 @@ var RichClayBundle = (() => {
         close();
       });
       dialog.querySelector("[data-richclay-remove-link]")?.addEventListener("click", remove);
-      dialog.querySelector("[data-richclay-cancel]").addEventListener("click", close);
+      dialog.querySelector("[data-richclay-cancel]").addEventListener("click", cancel);
       dialog.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
           event.preventDefault();
-          close();
+          cancel();
         } else if (event.key === "Tab") {
           trapTab(event, dialog);
         }
@@ -2530,6 +2734,23 @@ var RichClayBundle = (() => {
       input.focus();
       input.select();
       return KEEP_FOCUS;
+    }
+    // Unwraps one link and keeps its text, as one undo step. The link form's Remove and the
+    // link popover's Remove are this same call.
+    removeLinkElement(anchor) {
+      if (!anchor || !this.element.contains(anchor)) return false;
+      this.selectElement(anchor);
+      this._squire.removeLink();
+      announce(this.liveRegion, "Link removed");
+      return true;
+    }
+    updateLinkPopover() {
+      if (this.options.linkPopover === false || this.options.readOnly || !this._squire) return;
+      if (!this.linkPopover) {
+        if (this.dialog || !this.currentLinkElement()) return;
+        this.linkPopover = new LinkPopover(this);
+      }
+      this.linkPopover.update();
     }
     currentLinkElement() {
       const range = getSquireSelection(this._squire);
@@ -2649,6 +2870,7 @@ var RichClayBundle = (() => {
       this.element.addEventListener("blur", this._onBlur);
       this.element.addEventListener("click", this._onLinkActivation, true);
       this.element.addEventListener("auxclick", this._onLinkActivation, true);
+      this.element.addEventListener("clay:external-write", this._onExternalWrite);
     }
     cleanupEditorAttributes() {
       removeRuntimeState(this.element, "destroy");
@@ -2656,6 +2878,41 @@ var RichClayBundle = (() => {
       this.element.removeEventListener("blur", this._onBlur);
       this.element.removeEventListener("click", this._onLinkActivation, true);
       this.element.removeEventListener("auxclick", this._onLinkActivation, true);
+      this.element.removeEventListener("clay:external-write", this._onExternalWrite);
+    }
+    // A link label holds one link around all of its text, the shape its store reads back
+    // as text and address. Squire puts a space typed at a link's end, and a paste, outside
+    // the link (or splits it), and typing over the whole label deletes it; each of those
+    // is folded back into the one link, with the caret kept at the same character.
+    keepOneLink() {
+      const element = this.element;
+      const doc = element.ownerDocument;
+      const first = element.querySelector("a[href]");
+      const href = first?.getAttribute("href") ?? this._labelHref;
+      if (!href) return;
+      this._labelHref = href;
+      const text = element.textContent.replace(/\u200B/g, "").replace(/\s*[\r\n]+\s*/g, " ");
+      const only = element.childNodes.length === 1 && element.firstChild === first ? first : null;
+      const clean = only && [...only.childNodes].every((node) => node.nodeType === 3) && !only.textContent.includes("\u200B");
+      if (clean || !text) return;
+      const selection = this._squire.getSelection();
+      let caret = text.length;
+      if (selection && element.contains(selection.startContainer)) {
+        const before = doc.createRange();
+        before.selectNodeContents(element);
+        before.setEnd(selection.startContainer, selection.startOffset);
+        caret = before.toString().replace(/\u200B/g, "").replace(/\s*[\r\n]+\s*/g, " ").length;
+      }
+      this._squire.modifyDocument(() => {
+        const anchor = first ?? doc.createElement("a");
+        if (!first) anchor.setAttribute("href", href);
+        anchor.replaceChildren(doc.createTextNode(text));
+        element.replaceChildren(anchor);
+        const range = doc.createRange();
+        range.setStart(anchor.firstChild, Math.min(caret, text.length));
+        range.collapse(true);
+        this._squire.setSelection(range);
+      });
     }
     bindSquire() {
       const input = () => {
@@ -2663,16 +2920,19 @@ var RichClayBundle = (() => {
         this.updatePlaceholder();
         this.options.onChange?.(this.getHTML());
         this.toolbar?.update();
+        this.updateLinkPopover();
       };
       const pathChange = (event) => {
         this.path = event.detail?.path || this._squire.getPath?.() || "";
         this.saveSelection();
         this.toolbar?.update();
+        this.updateLinkPopover();
       };
       const selection = () => {
         this.saveSelection();
         this.toolbar?.update();
         if (this.options.toolbarOnSelect) this.updateFloatVisibility();
+        this.updateLinkPopover();
       };
       const undoState = () => this.toolbar?.update();
       [
@@ -2749,7 +3009,7 @@ var RichClayBundle = (() => {
       }, 0);
     }
     ownsFocusTarget(node) {
-      return node === this.element || this.element.contains(node) || Boolean(this.float?.root.contains(node)) || Boolean(this.dialog?.contains(node));
+      return node === this.element || this.element.contains(node) || Boolean(this.float?.root.contains(node)) || Boolean(this.dialog?.contains(node)) || Boolean(this.linkPopover?.root?.contains(node));
     }
     updateFloatVisibility() {
       if (!this.float) return;
@@ -2773,7 +3033,7 @@ var RichClayBundle = (() => {
     installShortcuts() {
       const seen = /* @__PURE__ */ new Set();
       const registryDefs = [...this.registry.values()].filter(
-        (def) => !this.options.singleLine || presets.inline.includes(def.id)
+        (def) => (!this.options.singleLine || presets.inline.includes(def.id)) && (!this.options.linkLabel || LINK_LABEL_CONTROLS.includes(def.id))
       );
       const defs = [...this.resolveToolbarControls(this.options.toolbar), ...registryDefs];
       defs.forEach((def) => {
@@ -2793,6 +3053,18 @@ var RichClayBundle = (() => {
         });
         this._shortcutKeys.push(key);
       });
+    }
+    // Formatting typed into a link label would be dropped by the next save of the shared
+    // store, which keeps only its text and address. Squire binds bold, italic and underline
+    // on its own prototype, so each key is answered with preventDefault: a null handler
+    // would hand it to the browser's own contenteditable formatting instead.
+    maskFormattingShortcuts() {
+      for (const def of this.registry.values()) {
+        if (!def.shortcut || LINK_LABEL_CONTROLS.includes(def.id)) continue;
+        const key = shortcutKey(def.shortcut, this.window);
+        this._squire.setKeyHandler(key, (squire, event) => event.preventDefault());
+        this._shortcutKeys.push(key);
+      }
     }
     // macOS sends Ctrl+D and Ctrl+H to the browser's own forward/backward delete,
     // which merges two blocks by wrapping the moved text in a computed-style
@@ -2847,7 +3119,8 @@ var RichClayBundle = (() => {
       });
       this._onBeforeInput = (event) => {
         if (!this.element.contains(event.target)) return;
-        if (event.inputType === "insertParagraph" || event.inputType === "insertLineBreak") {
+        const formats = this.options.linkLabel && event.inputType.startsWith("format");
+        if (event.inputType === "insertParagraph" || event.inputType === "insertLineBreak" || formats) {
           event.preventDefault();
           event.stopPropagation();
         }
@@ -2973,7 +3246,7 @@ var RichClayBundle = (() => {
   }
 
   // richclay.css
-  var richclay_default = ":root {\n  --richclay-surface: #ffffff;\n  --richclay-surface-alt: #f6f7f9;\n  --richclay-text: #0b0e14;\n  --richclay-muted: #667085;\n  --richclay-border: #c9ced8;\n  --richclay-accent: #0f766e;\n  --richclay-accent-ink: #ffffff;\n  --richclay-focus: #2563eb;\n  --richclay-danger: #b42318;\n  --richclay-radius: 6px;\n  --richclay-control-size: 34px;\n  --richclay-shadow: 0 10px 24px rgb(15 23 42 / 0.16);\n  --richclay-dialog-arrow: 28px;\n}\n\n@media (prefers-color-scheme: dark) {\n  :root {\n    --richclay-surface: #16181d;\n    --richclay-surface-alt: #22252c;\n    --richclay-text: #ffffff;\n    --richclay-muted: #a3aab8;\n    --richclay-border: #4a5260;\n    --richclay-accent: #2dd4bf;\n    --richclay-accent-ink: #05201d;\n    --richclay-focus: #93c5fd;\n    --richclay-shadow: 0 12px 28px rgb(0 0 0 / 0.35);\n  }\n}\n\n.richclay-toolbar {\n  align-items: center;\n  background: var(--richclay-surface-alt);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  display: flex;\n  flex-wrap: wrap;\n  gap: 2px;\n  margin-block: 0 6px;\n  padding: 4px;\n}\n\n/* Seamless card: in the default layout the toolbar sits directly above the\n   editor. Fuse them into a single bordered card with one divider \u2014 the\n   toolbar's bottom border \u2014 instead of two stacked, separated boxes. */\n.richclay-toolbar:has(+ .richclay-editor) {\n  margin-block-end: 0;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n}\n\n.richclay-toolbar + .richclay-editor {\n  border-top: 0;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n\n/* In a fused card, draw the focus ring inside the body so it never crosses\n   the toolbar divider. */\n.richclay-toolbar + .richclay-editor:focus-visible {\n  outline-offset: -3px;\n}\n\n.richclay-button {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 5px;\n  color: currentColor;\n  display: inline-flex;\n  height: var(--richclay-control-size);\n  justify-content: center;\n  margin: 0;\n  min-width: var(--richclay-control-size);\n  padding: 0;\n  position: relative;\n}\n\n.richclay-button:hover,\n.richclay-button[aria-expanded=\"true\"],\n.richclay-menu-item:hover {\n  background: var(--richclay-surface);\n  border-color: var(--richclay-border);\n}\n\n.richclay-button.is-active,\n.richclay-button[aria-pressed=\"true\"],\n.richclay-menu-item.is-active {\n  background: rgb(0 0 0 / 0.13);\n  border-color: rgb(0 0 0 / 0.22);\n  color: var(--richclay-text);\n  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.26);\n}\n\n.richclay-button:focus-visible,\n.richclay-menu-item:focus-visible,\n.richclay-editor:focus-visible,\n.richclay-input:focus-visible,\n.richclay-primary:focus-visible,\n.richclay-secondary:focus-visible {\n  outline: 3px solid var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-button:disabled {\n  color: var(--richclay-muted);\n  cursor: not-allowed;\n  opacity: 0.55;\n}\n\n.richclay-separator {\n  align-self: stretch;\n  background: var(--richclay-border);\n  display: inline-block;\n  margin: 5px 4px;\n  width: 1px;\n}\n\n.richclay-menu-wrap {\n  display: inline-flex;\n  position: relative;\n}\n\n.richclay-menu {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 2px;\n  inset-block-start: calc(100% + 4px);\n  inset-inline-start: 0;\n  min-width: 160px;\n  padding: 4px;\n  position: absolute;\n  z-index: 1000;\n}\n\n.richclay-menu[hidden] {\n  display: none;\n}\n\n.richclay-menu-item {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 4px;\n  color: inherit;\n  display: flex;\n  font: inherit;\n  gap: 8px;\n  min-height: 32px;\n  padding: 5px 9px;\n  text-align: start;\n}\n\n.richclay-editor {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  min-height: 9rem;\n  /* Break a long unbreakable string (e.g. a bare URL) in prose rather than let\n     it widen the editor. `anywhere` also lowers min-content, so the editor can't\n     grow even as a flex/grid item. Inert on the code <pre> (white-space: pre). */\n  overflow-wrap: anywhere;\n  padding: 12px;\n  position: relative;\n}\n\n.richclay-editor.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  inset-block-start: 12px;\n  inset-inline-start: 12px;\n  pointer-events: none;\n  position: absolute;\n}\n\n.richclay-editor p,\n.richclay-editor h1,\n.richclay-editor h2,\n.richclay-editor h3,\n.richclay-editor h4,\n.richclay-editor h5,\n.richclay-editor h6,\n.richclay-editor blockquote,\n.richclay-editor pre,\n.richclay-editor ul,\n.richclay-editor ol {\n  margin-block: 0 0.75em;\n}\n\n.richclay-editor > :last-child {\n  margin-block-end: 0;\n}\n\n/* Inline editors ([editable]) inherit the page's own styling. richclay adds\n   only a caret, a discoverability outline, and empty-state affordances. */\n.richclay-inline {\n  caret-color: currentColor;\n}\n\n.richclay-inline:hover {\n  outline: 1px dashed var(--richclay-border);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-focused,\n.richclay-inline:focus-visible {\n  outline: 2px dashed var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-empty {\n  min-height: 1em;\n  min-width: 1ch;\n}\n\n.richclay-inline.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  pointer-events: none;\n}\n\n/* Floating toolbar shell for inline editors. Fixed-position and body-mounted:\n   fixed elements never create scrollbars, and body mounting avoids transformed\n   ancestors silently turning fixed into ancestor-relative. */\n.richclay-float {\n  left: 0;\n  position: fixed;\n  top: 0;\n  will-change: transform;\n  z-index: 99999;\n}\n\n.richclay-float .richclay-toolbar {\n  box-shadow: var(--richclay-shadow);\n  margin-block: 0;\n}\n\n/* Compact vertical rail for narrow margins. */\n.richclay-float-rail .richclay-toolbar {\n  --richclay-control-size: 28px;\n  flex-direction: column;\n  flex-wrap: nowrap;\n}\n\n.richclay-float-rail .richclay-toolbar svg {\n  height: 15px;\n  width: 15px;\n}\n\n.richclay-float-rail .richclay-separator {\n  align-self: stretch;\n  height: 1px;\n  margin: 4px 5px;\n  width: auto;\n}\n\n.richclay-float-rail .richclay-menu {\n  inset-block-start: 0;\n  inset-inline-start: calc(100% + 4px);\n}\n\n.richclay-editor blockquote {\n  border-inline-start: 3px solid var(--richclay-border);\n  color: var(--richclay-muted);\n  margin-inline: 0;\n  padding-inline-start: 12px;\n}\n\n/* Code blocks scroll horizontally inside the editor instead of widening it.\n   `width: 0; min-width: 100%` zeroes the pre's intrinsic-width contribution so a\n   long unbreakable line can't push an intrinsically-sized ancestor (flex/grid\n   item, inline-block, table cell) wider, while still filling the editor and\n   scrolling its own overflow. box-sizing keeps padding inside that 100%.\n   Containment applies to inline editors too: `white-space: pre` never wraps, so\n   without it one code block runs off the side of the page. Only the decoration\n   below stays card-scoped, since inline mode keeps the page's own typography. */\n.richclay-editor pre,\n.richclay-inline pre {\n  box-sizing: border-box;\n  min-width: 100%;\n  overflow: auto;\n  width: 0;\n}\n\n.richclay-editor pre {\n  background: var(--richclay-surface-alt);\n  border-radius: 4px;\n  padding: 10px;\n}\n\n.richclay-dialog {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 10px;\n  box-sizing: border-box;\n  width: min(420px, calc(100vw - 16px));\n  z-index: 99999;\n  padding: 12px;\n}\n\n.richclay-dialog-title {\n  font-weight: 650;\n}\n\n.richclay-field {\n  display: grid;\n  gap: 4px;\n}\n\n.richclay-field span {\n  color: var(--richclay-muted);\n  font-size: 0.875rem;\n}\n\n.richclay-input {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  color: var(--richclay-text);\n  font: inherit;\n  min-height: 36px;\n  padding: 6px 8px;\n}\n\n.richclay-dialog-actions {\n  display: flex;\n  gap: 8px;\n  justify-content: flex-end;\n}\n\n.richclay-dialog-actions [data-richclay-remove-link] {\n  margin-inline-end: auto;\n}\n\n.richclay-primary,\n.richclay-secondary {\n  appearance: none;\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  font: inherit;\n  min-height: 34px;\n  padding: 5px 10px;\n}\n\n.richclay-primary {\n  background: var(--richclay-accent);\n  border-color: var(--richclay-accent);\n  color: var(--richclay-accent-ink);\n}\n\n.richclay-secondary {\n  background: var(--richclay-surface-alt);\n  color: var(--richclay-text);\n}\n\n.richclay-sr-only {\n  border: 0;\n  clip: rect(0 0 0 0);\n  clip-path: inset(50%);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  white-space: nowrap;\n  width: 1px;\n}\n\n@media (forced-colors: active) {\n  .richclay-toolbar,\n  .richclay-editor,\n  .richclay-menu,\n  .richclay-dialog,\n  .richclay-input {\n    border-color: CanvasText;\n  }\n\n  .richclay-button.is-active,\n  .richclay-button[aria-pressed=\"true\"],\n  .richclay-menu-item.is-active,\n  .richclay-primary {\n    background: Highlight;\n    color: HighlightText;\n  }\n\n  .richclay-button:focus-visible,\n  .richclay-menu-item:focus-visible,\n  .richclay-editor:focus-visible,\n  .richclay-input:focus-visible {\n    outline-color: Highlight;\n  }\n}\n";
+  var richclay_default = ":root {\n  --richclay-surface: #ffffff;\n  --richclay-surface-alt: #f6f7f9;\n  --richclay-text: #0b0e14;\n  --richclay-muted: #667085;\n  --richclay-border: #c9ced8;\n  --richclay-accent: #0f766e;\n  --richclay-accent-ink: #ffffff;\n  --richclay-focus: #2563eb;\n  --richclay-danger: #b42318;\n  --richclay-radius: 6px;\n  --richclay-control-size: 34px;\n  --richclay-shadow: 0 10px 24px rgb(15 23 42 / 0.16);\n  --richclay-dialog-arrow: 28px;\n}\n\n@media (prefers-color-scheme: dark) {\n  :root {\n    --richclay-surface: #16181d;\n    --richclay-surface-alt: #22252c;\n    --richclay-text: #ffffff;\n    --richclay-muted: #a3aab8;\n    --richclay-border: #4a5260;\n    --richclay-accent: #2dd4bf;\n    --richclay-accent-ink: #05201d;\n    --richclay-focus: #93c5fd;\n    --richclay-shadow: 0 12px 28px rgb(0 0 0 / 0.35);\n  }\n}\n\n.richclay-toolbar {\n  align-items: center;\n  background: var(--richclay-surface-alt);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  display: flex;\n  flex-wrap: wrap;\n  gap: 2px;\n  margin-block: 0 6px;\n  padding: 4px;\n}\n\n/* Seamless card: in the default layout the toolbar sits directly above the\n   editor. Fuse them into a single bordered card with one divider \u2014 the\n   toolbar's bottom border \u2014 instead of two stacked, separated boxes. */\n.richclay-toolbar:has(+ .richclay-editor) {\n  margin-block-end: 0;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n}\n\n.richclay-toolbar + .richclay-editor {\n  border-top: 0;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n\n/* In a fused card, draw the focus ring inside the body so it never crosses\n   the toolbar divider. */\n.richclay-toolbar + .richclay-editor:focus-visible {\n  outline-offset: -3px;\n}\n\n.richclay-button {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 5px;\n  color: currentColor;\n  display: inline-flex;\n  height: var(--richclay-control-size);\n  justify-content: center;\n  margin: 0;\n  min-width: var(--richclay-control-size);\n  padding: 0;\n  position: relative;\n}\n\n.richclay-button:hover,\n.richclay-button[aria-expanded=\"true\"],\n.richclay-menu-item:hover {\n  background: var(--richclay-surface);\n  border-color: var(--richclay-border);\n}\n\n.richclay-button.is-active,\n.richclay-button[aria-pressed=\"true\"],\n.richclay-menu-item.is-active {\n  background: rgb(0 0 0 / 0.13);\n  border-color: rgb(0 0 0 / 0.22);\n  color: var(--richclay-text);\n  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.26);\n}\n\n.richclay-button:focus-visible,\n.richclay-menu-item:focus-visible,\n.richclay-editor:focus-visible,\n.richclay-input:focus-visible,\n.richclay-primary:focus-visible,\n.richclay-secondary:focus-visible {\n  outline: 3px solid var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-button:disabled {\n  color: var(--richclay-muted);\n  cursor: not-allowed;\n  opacity: 0.55;\n}\n\n.richclay-separator {\n  align-self: stretch;\n  background: var(--richclay-border);\n  display: inline-block;\n  margin: 5px 4px;\n  width: 1px;\n}\n\n.richclay-menu-wrap {\n  display: inline-flex;\n  position: relative;\n}\n\n.richclay-menu {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 2px;\n  inset-block-start: calc(100% + 4px);\n  inset-inline-start: 0;\n  min-width: 160px;\n  padding: 4px;\n  position: absolute;\n  z-index: 1000;\n}\n\n.richclay-menu[hidden] {\n  display: none;\n}\n\n.richclay-menu-item {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 4px;\n  color: inherit;\n  display: flex;\n  font: inherit;\n  gap: 8px;\n  min-height: 32px;\n  padding: 5px 9px;\n  text-align: start;\n}\n\n.richclay-editor {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  min-height: 9rem;\n  /* Break a long unbreakable string (e.g. a bare URL) in prose rather than let\n     it widen the editor. `anywhere` also lowers min-content, so the editor can't\n     grow even as a flex/grid item. Inert on the code <pre> (white-space: pre). */\n  overflow-wrap: anywhere;\n  padding: 12px;\n  position: relative;\n}\n\n.richclay-editor.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  inset-block-start: 12px;\n  inset-inline-start: 12px;\n  pointer-events: none;\n  position: absolute;\n}\n\n.richclay-editor p,\n.richclay-editor h1,\n.richclay-editor h2,\n.richclay-editor h3,\n.richclay-editor h4,\n.richclay-editor h5,\n.richclay-editor h6,\n.richclay-editor blockquote,\n.richclay-editor pre,\n.richclay-editor ul,\n.richclay-editor ol {\n  margin-block: 0 0.75em;\n}\n\n.richclay-editor > :last-child {\n  margin-block-end: 0;\n}\n\n/* Inline editors ([editable]) inherit the page's own styling. richclay adds\n   only a caret, a discoverability outline, and empty-state affordances. */\n.richclay-inline {\n  caret-color: currentColor;\n}\n\n.richclay-inline:hover {\n  outline: 1px dashed var(--richclay-border);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-focused,\n.richclay-inline:focus-visible {\n  outline: 2px dashed var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-empty {\n  min-height: 1em;\n  min-width: 1ch;\n}\n\n.richclay-inline.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  pointer-events: none;\n}\n\n/* Floating toolbar shell for inline editors. Fixed-position and body-mounted:\n   fixed elements never create scrollbars, and body mounting avoids transformed\n   ancestors silently turning fixed into ancestor-relative. */\n.richclay-float {\n  left: 0;\n  position: fixed;\n  top: 0;\n  will-change: transform;\n  z-index: 99999;\n}\n\n.richclay-float .richclay-toolbar {\n  box-shadow: var(--richclay-shadow);\n  margin-block: 0;\n}\n\n/* Compact vertical rail for narrow margins. */\n.richclay-float-rail .richclay-toolbar {\n  --richclay-control-size: 28px;\n  flex-direction: column;\n  flex-wrap: nowrap;\n}\n\n.richclay-float-rail .richclay-toolbar svg {\n  height: 15px;\n  width: 15px;\n}\n\n.richclay-float-rail .richclay-separator {\n  align-self: stretch;\n  height: 1px;\n  margin: 4px 5px;\n  width: auto;\n}\n\n.richclay-float-rail .richclay-menu {\n  inset-block-start: 0;\n  inset-inline-start: calc(100% + 4px);\n}\n\n.richclay-editor blockquote {\n  border-inline-start: 3px solid var(--richclay-border);\n  color: var(--richclay-muted);\n  margin-inline: 0;\n  padding-inline-start: 12px;\n}\n\n/* Code blocks scroll horizontally inside the editor instead of widening it.\n   `width: 0; min-width: 100%` zeroes the pre's intrinsic-width contribution so a\n   long unbreakable line can't push an intrinsically-sized ancestor (flex/grid\n   item, inline-block, table cell) wider, while still filling the editor and\n   scrolling its own overflow. box-sizing keeps padding inside that 100%.\n   Containment applies to inline editors too: `white-space: pre` never wraps, so\n   without it one code block runs off the side of the page. Only the decoration\n   below stays card-scoped, since inline mode keeps the page's own typography. */\n.richclay-editor pre,\n.richclay-inline pre {\n  box-sizing: border-box;\n  min-width: 100%;\n  overflow: auto;\n  width: 0;\n}\n\n.richclay-editor pre {\n  background: var(--richclay-surface-alt);\n  border-radius: 4px;\n  padding: 10px;\n}\n\n.richclay-dialog {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 10px;\n  box-sizing: border-box;\n  width: min(420px, calc(100vw - 16px));\n  z-index: 99999;\n  padding: 12px;\n}\n\n.richclay-dialog-title {\n  font-weight: 650;\n}\n\n.richclay-dialog.richclay-link-popover {\n  align-items: center;\n  display: flex;\n  gap: 6px;\n  max-width: min(420px, calc(100vw - 16px));\n  padding: 6px;\n  width: auto;\n}\n\n.richclay-link-address {\n  color: inherit;\n  font-size: 0.875rem;\n  max-width: 260px;\n  overflow: hidden;\n  padding: 0 6px;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.richclay-link-popover .richclay-secondary {\n  min-height: 30px;\n  padding: 3px 9px;\n}\n\n.richclay-field {\n  display: grid;\n  gap: 4px;\n}\n\n.richclay-field span {\n  color: var(--richclay-muted);\n  font-size: 0.875rem;\n}\n\n.richclay-input {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  color: var(--richclay-text);\n  font: inherit;\n  min-height: 36px;\n  padding: 6px 8px;\n}\n\n.richclay-dialog-actions {\n  display: flex;\n  gap: 8px;\n  justify-content: flex-end;\n}\n\n.richclay-dialog-actions [data-richclay-remove-link] {\n  margin-inline-end: auto;\n}\n\n.richclay-primary,\n.richclay-secondary {\n  appearance: none;\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  font: inherit;\n  min-height: 34px;\n  padding: 5px 10px;\n}\n\n.richclay-primary {\n  background: var(--richclay-accent);\n  border-color: var(--richclay-accent);\n  color: var(--richclay-accent-ink);\n}\n\n.richclay-secondary {\n  background: var(--richclay-surface-alt);\n  color: var(--richclay-text);\n}\n\n.richclay-sr-only {\n  border: 0;\n  clip: rect(0 0 0 0);\n  clip-path: inset(50%);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  white-space: nowrap;\n  width: 1px;\n}\n\n@media (forced-colors: active) {\n  .richclay-toolbar,\n  .richclay-editor,\n  .richclay-menu,\n  .richclay-dialog,\n  .richclay-input {\n    border-color: CanvasText;\n  }\n\n  .richclay-button.is-active,\n  .richclay-button[aria-pressed=\"true\"],\n  .richclay-menu-item.is-active,\n  .richclay-primary {\n    background: Highlight;\n    color: HighlightText;\n  }\n\n  .richclay-button:focus-visible,\n  .richclay-menu-item:focus-visible,\n  .richclay-editor:focus-visible,\n  .richclay-input:focus-visible {\n    outline-color: Highlight;\n  }\n}\n";
 
   // src/browser-global.js
   setRichClayStyles(richclay_default);

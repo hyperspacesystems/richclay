@@ -63,6 +63,27 @@ test("normalizeUrl rejects dangerous schemes and obfuscation, keeps safe URLs", 
   assert.equal(normalizeUrl("../up"), "../up");
 });
 
+test("normalizeUrl keeps a site's own files and paths relative", () => {
+  const table = [
+    ["cv.html", "cv.html"],
+    ["CV.HTML", "CV.HTML"],
+    ["paper.pdf", "paper.pdf"],
+    ["cv.html#teaching", "cv.html#teaching"],
+    ["writing/twelve-hours.html", "writing/twelve-hours.html"],
+    ["pdfs/okafor-2024.pdf", "pdfs/okafor-2024.pdf"],
+    ["example.com", "https://example.com"],
+    ["example.com/page.html", "https://example.com/page.html"],
+    ["www.example.org/cv.html", "https://www.example.org/cv.html"],
+    ["example", "https://example"],
+    ["a@b.org", "mailto:a@b.org"],
+    ["#top", "#top"],
+    ["../x.html", "../x.html"],
+    ["/about", "/about"],
+    ["my file.html", "https://my file.html"],
+  ];
+  for (const [typed, expected] of table) assert.equal(normalizeUrl(typed), expected, typed);
+});
+
 test("isSafeUrl allows scheme-less and safe-scheme URLs, blocks the rest", () => {
   assert.equal(isSafeUrl("/relative/path"), true);
   assert.equal(isSafeUrl("https://x.com"), true);

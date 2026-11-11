@@ -314,6 +314,30 @@
   font-weight: 650;
 }
 
+.richclay-dialog.richclay-link-popover {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  max-width: min(420px, calc(100vw - 16px));
+  padding: 6px;
+  width: auto;
+}
+
+.richclay-link-address {
+  color: inherit;
+  font-size: 0.875rem;
+  max-width: 260px;
+  overflow: hidden;
+  padding: 0 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.richclay-link-popover .richclay-secondary {
+  min-height: 30px;
+  padding: 3px 9px;
+}
+
 .richclay-field {
   display: grid;
   gap: 4px;

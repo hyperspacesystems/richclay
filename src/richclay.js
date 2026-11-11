@@ -21,6 +21,7 @@ import {
 } from "./normalize.js";
 import { Toolbar } from "./toolbar.js";
 import { FloatingToolbar, pin, placePopover } from "./toolbar-float.js";
+import { LinkPopover } from "./link-popover.js";
 import {
   createSanitizer,
   flattenFragmentToSingleLine,
@@ -156,8 +157,14 @@ const defaultOptions = {
   Squire: null,
   inline: false,
   singleLine: false,
-  toolbarOnSelect: false
+  toolbarOnSelect: false,
+  linkPopover: true,
+  linkLabel: false
 };
+
+// A link label (`editable="link-label"`) is one line of plain text with at most one link,
+// the shape a site's shared store keeps as text and address. Only these controls run in it.
+const LINK_LABEL_CONTROLS = ["link", "undo", "redo"];
 
 export default class RichClay {
   static presets = presets;
@@ -192,6 +199,7 @@ export default class RichClay {
     this.description = null;
     this.dialog = null;
     this.dialogCleanup = null;
+    this.linkPopover = null;
     this.savedSelection = null;
     this.path = "";
     this.active = false;
@@ -211,6 +219,7 @@ export default class RichClay {
     };
     this._onBlur = event => {
       this.element.classList.remove("richclay-focused");
+      this.linkPopover?.onEditorBlur(event);
       if (this.options.inline) this.scheduleFloatTeardown(event);
     };
 
@@ -222,6 +231,17 @@ export default class RichClay {
       const chrome = closestWithCapability(target, "history");
       if (chrome && chrome !== this.element && this.element.contains(chrome) && chrome.contains(anchor)) return;
       event.preventDefault();
+    };
+
+    // The host rewrote this region's content (a shared value another page changed). That is
+    // not an edit here: drop Squire's view of the write and start undo from the new content,
+    // or the first undo would put the older value back.
+    this._onExternalWrite = () => {
+      if (!this._squire) return;
+      this._squire._mutation?.takeRecords();
+      if (this.options.linkLabel) this._labelHref = this.element.querySelector("a[href]")?.getAttribute("href") ?? this._labelHref;
+      this.resetSquireUndoBaseline();
+      this.updatePlaceholder();
     };
 
     this.ensureMarker();
@@ -470,6 +490,9 @@ export default class RichClay {
           const ignored = editor._ignoreChange;
           editor._docWasChanged();
           if (local && ignored) editor.fireEvent('input');
+          // Here rather than on Squire's input event, which skips the change that follows
+          // an undo checkpoint: a paste is always one.
+          if (this.options.linkLabel) this.keepOneLink();
         }
         else if (local) {
           editor._mayHaveZWS = true;
@@ -514,6 +537,7 @@ export default class RichClay {
     this.maskSquireCodeShortcut();
     this.maskSquireBlockShortcuts();
     this.installShortcuts();
+    if (this.options.linkLabel) this.maskFormattingShortcuts();
     if (this.options.inline) {
       this._onToolbarKey = event => {
         if (event.altKey && event.key === "F10") {
@@ -540,6 +564,17 @@ export default class RichClay {
       };
       this._squire.addEventListener("willPaste", willPaste);
       this._squireListeners.push(["willPaste", willPaste]);
+    }
+    if (this.options.linkLabel) {
+      const plainPaste = event => {
+        const fragment = event.detail?.fragment;
+        if (!fragment) return;
+        const text = fragment.textContent.replace(/\s+/g, " ");
+        fragment.replaceChildren(this.element.ownerDocument.createTextNode(text));
+      };
+      this._squire.addEventListener("willPaste", plainPaste);
+      this._squireListeners.push(["willPaste", plainPaste]);
+      this._labelHref = this.element.querySelector("a[href]")?.getAttribute("href") ?? null;
     }
     this.renderToolbar();
     this.updatePlaceholder();
@@ -617,6 +652,8 @@ export default class RichClay {
 
   destroy() {
     this.closeLinkDialog();
+    this.linkPopover?.destroy();
+    this.linkPopover = null;
     this.teardownFloatingToolbar();
     this.toolbar?.destroy();
     this.toolbar = null;
@@ -937,6 +974,7 @@ export default class RichClay {
   openLinkDialog() {
     this.saveSelection();
     this.closeLinkDialog();
+    this.linkPopover?.hide();
 
     const doc = this.element.ownerDocument;
     const existingLink = this.currentLinkElement();
@@ -957,7 +995,7 @@ export default class RichClay {
         <input class="richclay-input" name="url" type="text" inputmode="url" autocomplete="url" placeholder="https://example.com">
       </label>
       <div class="richclay-dialog-actions">
-        ${existingLink ? '<button type="button" class="richclay-secondary" data-richclay-remove-link>Remove link</button>' : ""}
+        ${existingLink && !this.options.linkLabel ? '<button type="button" class="richclay-secondary" data-richclay-remove-link>Remove link</button>' : ""}
         <button type="button" class="richclay-secondary" data-richclay-cancel>Cancel</button>
         <button type="submit" class="richclay-primary">Apply</button>
       </div>
@@ -967,17 +1005,21 @@ export default class RichClay {
       this.closeLinkDialog();
       this.toolbar?.update();
       this.focus();
+      this.updateLinkPopover();
     };
 
     const remove = () => {
       this.restoreSelection();
-      const anchor = this.currentLinkElement();
-      if (anchor) {
-        this.selectElement(anchor);
-        this._squire.removeLink();
-        announce(this.liveRegion, "Link removed");
-      }
+      this.removeLinkElement(this.currentLinkElement());
       close();
+    };
+
+    // Cancel puts the selection back where the form found it, so the link bar returns for
+    // the same link. Focus comes first: focusing the editor can move the selection.
+    const cancel = () => {
+      close();
+      this.restoreSelection();
+      this.updateLinkPopover();
     };
 
     dialog.addEventListener("submit", event => {
@@ -994,7 +1036,14 @@ export default class RichClay {
         return;
       }
       this.restoreSelection();
-      const anchor = this.currentLinkElement();
+      // A link label holds at most one link, covering the whole label: the address
+      // always goes on the whole field, and Squire's makeLink replaces any link in it.
+      const anchor = this.options.linkLabel ? null : this.currentLinkElement();
+      if (this.options.linkLabel) {
+        const range = this.element.ownerDocument.createRange();
+        range.selectNodeContents(this.element);
+        this._squire.setSelection(range);
+      }
       if (anchor) {
         this.selectElement(anchor);
         this._squire.saveUndoState();
@@ -1006,11 +1055,11 @@ export default class RichClay {
       close();
     });
     dialog.querySelector("[data-richclay-remove-link]")?.addEventListener("click", remove);
-    dialog.querySelector("[data-richclay-cancel]").addEventListener("click", close);
+    dialog.querySelector("[data-richclay-cancel]").addEventListener("click", cancel);
     dialog.addEventListener("keydown", event => {
       if (event.key === "Escape") {
         event.preventDefault();
-        close();
+        cancel();
       } else if (event.key === "Tab") {
         trapTab(event, dialog);
       }
@@ -1057,6 +1106,25 @@ export default class RichClay {
     input.focus();
     input.select();
     return KEEP_FOCUS;
+  }
+
+  // Unwraps one link and keeps its text, as one undo step. The link form's Remove and the
+  // link popover's Remove are this same call.
+  removeLinkElement(anchor) {
+    if (!anchor || !this.element.contains(anchor)) return false;
+    this.selectElement(anchor);
+    this._squire.removeLink();
+    announce(this.liveRegion, "Link removed");
+    return true;
+  }
+
+  updateLinkPopover() {
+    if (this.options.linkPopover === false || this.options.readOnly || !this._squire) return;
+    if (!this.linkPopover) {
+      if (this.dialog || !this.currentLinkElement()) return;
+      this.linkPopover = new LinkPopover(this);
+    }
+    this.linkPopover.update();
   }
 
   currentLinkElement() {
@@ -1220,6 +1288,7 @@ export default class RichClay {
     this.element.addEventListener("blur", this._onBlur);
     this.element.addEventListener("click", this._onLinkActivation, true);
     this.element.addEventListener("auxclick", this._onLinkActivation, true);
+    this.element.addEventListener("clay:external-write", this._onExternalWrite);
   }
 
   cleanupEditorAttributes() {
@@ -1228,6 +1297,43 @@ export default class RichClay {
     this.element.removeEventListener("blur", this._onBlur);
     this.element.removeEventListener("click", this._onLinkActivation, true);
     this.element.removeEventListener("auxclick", this._onLinkActivation, true);
+    this.element.removeEventListener("clay:external-write", this._onExternalWrite);
+  }
+
+  // A link label holds one link around all of its text, the shape its store reads back
+  // as text and address. Squire puts a space typed at a link's end, and a paste, outside
+  // the link (or splits it), and typing over the whole label deletes it; each of those
+  // is folded back into the one link, with the caret kept at the same character.
+  keepOneLink() {
+    const element = this.element;
+    const doc = element.ownerDocument;
+    const first = element.querySelector("a[href]");
+    const href = first?.getAttribute("href") ?? this._labelHref;
+    if (!href) return;
+    this._labelHref = href;
+    const text = element.textContent.replace(/\u200B/g, "").replace(/\s*[\r\n]+\s*/g, " ");
+    const only = element.childNodes.length === 1 && element.firstChild === first ? first : null;
+    const clean = only && [...only.childNodes].every(node => node.nodeType === 3) && !only.textContent.includes("\u200B");
+    if (clean || !text) return;
+
+    const selection = this._squire.getSelection();
+    let caret = text.length;
+    if (selection && element.contains(selection.startContainer)) {
+      const before = doc.createRange();
+      before.selectNodeContents(element);
+      before.setEnd(selection.startContainer, selection.startOffset);
+      caret = before.toString().replace(/\u200B/g, "").replace(/\s*[\r\n]+\s*/g, " ").length;
+    }
+    this._squire.modifyDocument(() => {
+      const anchor = first ?? doc.createElement("a");
+      if (!first) anchor.setAttribute("href", href);
+      anchor.replaceChildren(doc.createTextNode(text));
+      element.replaceChildren(anchor);
+      const range = doc.createRange();
+      range.setStart(anchor.firstChild, Math.min(caret, text.length));
+      range.collapse(true);
+      this._squire.setSelection(range);
+    });
   }
 
   bindSquire() {
@@ -1236,16 +1342,19 @@ export default class RichClay {
       this.updatePlaceholder();
       this.options.onChange?.(this.getHTML());
       this.toolbar?.update();
+      this.updateLinkPopover();
     };
     const pathChange = event => {
       this.path = event.detail?.path || this._squire.getPath?.() || "";
       this.saveSelection();
       this.toolbar?.update();
+      this.updateLinkPopover();
     };
     const selection = () => {
       this.saveSelection();
       this.toolbar?.update();
       if (this.options.toolbarOnSelect) this.updateFloatVisibility();
+      this.updateLinkPopover();
     };
     const undoState = () => this.toolbar?.update();
 
@@ -1341,7 +1450,8 @@ export default class RichClay {
       node === this.element ||
       this.element.contains(node) ||
       Boolean(this.float?.root.contains(node)) ||
-      Boolean(this.dialog?.contains(node))
+      Boolean(this.dialog?.contains(node)) ||
+      Boolean(this.linkPopover?.root?.contains(node))
     );
   }
 
@@ -1375,7 +1485,9 @@ export default class RichClay {
     // Single-line editors must never gain block commands: registry defaults are
     // filtered to the inline preset (explicit toolbar defs still always bind).
     const registryDefs = [...this.registry.values()].filter(
-      def => !this.options.singleLine || presets.inline.includes(def.id)
+      def =>
+        (!this.options.singleLine || presets.inline.includes(def.id)) &&
+        (!this.options.linkLabel || LINK_LABEL_CONTROLS.includes(def.id))
     );
     const defs = [...this.resolveToolbarControls(this.options.toolbar), ...registryDefs];
     defs.forEach(def => {
@@ -1399,6 +1511,19 @@ export default class RichClay {
       });
       this._shortcutKeys.push(key);
     });
+  }
+
+  // Formatting typed into a link label would be dropped by the next save of the shared
+  // store, which keeps only its text and address. Squire binds bold, italic and underline
+  // on its own prototype, so each key is answered with preventDefault: a null handler
+  // would hand it to the browser's own contenteditable formatting instead.
+  maskFormattingShortcuts() {
+    for (const def of this.registry.values()) {
+      if (!def.shortcut || LINK_LABEL_CONTROLS.includes(def.id)) continue;
+      const key = shortcutKey(def.shortcut, this.window);
+      this._squire.setKeyHandler(key, (squire, event) => event.preventDefault());
+      this._shortcutKeys.push(key);
+    }
   }
 
   // macOS sends Ctrl+D and Ctrl+H to the browser's own forward/backward delete,
@@ -1461,7 +1586,10 @@ export default class RichClay {
     // cancel paragraph/line-break insertions before Squire's own handler runs.
     this._onBeforeInput = event => {
       if (!this.element.contains(event.target)) return;
-      if (event.inputType === "insertParagraph" || event.inputType === "insertLineBreak") {
+      // A link label also refuses the browser's own formatting commands (a mobile
+      // selection menu's Bold, for one), which never pass through a keydown.
+      const formats = this.options.linkLabel && event.inputType.startsWith("format");
+      if (event.inputType === "insertParagraph" || event.inputType === "insertLineBreak" || formats) {
         event.preventDefault();
         event.stopPropagation();
       }

@@ -102,6 +102,13 @@ export function isSafeUrl(url) {
   return !scheme || SAFE_URL_SCHEMES.has(scheme.toLowerCase());
 }
 
+// A single file name with a document extension (`cv.html`, `paper.pdf`), or a path whose
+// first segment has no dot (`writing/twelve-hours.html`), is a page or file of this site.
+// `example.com` and `example.com/page.html` are hosts: a first segment with a dot that is
+// not a known file name.
+const SITE_FILE = /^[^\s/?#:]+\.(?:html?|pdf|txt|csv|json|xml|svg|png|jpe?g|gif|webp|docx?|xlsx?|pptx?|bib|tex|zip)(?:[?#]\S*)?$/i;
+const SITE_PATH = /^[^\s/?#:.]+\/\S*$/;
+
 export function normalizeUrl(value) {
   const raw = String(value == null ? "" : value).trim();
   if (!raw || !isSafeUrl(raw)) return "";
@@ -110,6 +117,7 @@ export function normalizeUrl(value) {
   // Preserve fragment, query, root-relative, protocol-relative, and explicitly
   // relative links as-is; only a bare hostname gets an https:// scheme.
   if (/^(?:[#?]|\/|\.{1,2}\/)/.test(raw)) return raw;
+  if (SITE_FILE.test(raw) || SITE_PATH.test(raw)) return raw;
   return `https://${raw}`;
 }
 
