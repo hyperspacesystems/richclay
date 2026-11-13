@@ -344,8 +344,7 @@ export default class RichClay {
           // A node that is still connected was moved, not removed; keep its
           // editor alive.
           const teardown = el => {
-            // A removed field keeps its DOM as it was: undo may hold an exact copy and put it back.
-            if (!el.isConnected) instances.get(el)?.destroy({ detached: true });
+            if (!el.isConnected) instances.get(el)?.destroy();
           };
           if (node.matches?.(RICHCLAY_SELECTOR)) teardown(node);
           node.querySelectorAll?.(RICHCLAY_SELECTOR).forEach(teardown);
@@ -651,7 +650,7 @@ export default class RichClay {
     return this;
   }
 
-  destroy({ detached = false } = {}) {
+  destroy() {
     this.closeLinkDialog();
     this.linkPopover?.destroy();
     this.linkPopover = null;
@@ -695,7 +694,7 @@ export default class RichClay {
 
     this._squire?.destroy?.();
     this._squire = null;
-    this.cleanupEditorAttributes({ keepDom: detached });
+    this.cleanupEditorAttributes();
 
     instances.delete(this.element);
   }
@@ -1292,8 +1291,8 @@ export default class RichClay {
     this.element.addEventListener("clay:external-write", this._onExternalWrite);
   }
 
-  cleanupEditorAttributes({ keepDom = false } = {}) {
-    if (!keepDom) removeRuntimeState(this.element, "destroy");
+  cleanupEditorAttributes() {
+    removeRuntimeState(this.element, "destroy");
     this.element.removeEventListener("focus", this._onFocus);
     this.element.removeEventListener("blur", this._onBlur);
     this.element.removeEventListener("click", this._onLinkActivation, true);

@@ -2124,7 +2124,7 @@ var RichClayBundle = (() => {
           record.removedNodes.forEach((node) => {
             if (node.nodeType !== 1) return;
             const teardown = (el) => {
-              if (!el.isConnected) instances.get(el)?.destroy({ detached: true });
+              if (!el.isConnected) instances.get(el)?.destroy();
             };
             if (node.matches?.(RICHCLAY_SELECTOR)) teardown(node);
             node.querySelectorAll?.(RICHCLAY_SELECTOR).forEach(teardown);
@@ -2373,7 +2373,7 @@ var RichClayBundle = (() => {
       else this.element.focus();
       return this;
     }
-    destroy({ detached = false } = {}) {
+    destroy() {
       this.closeLinkDialog();
       this.linkPopover?.destroy();
       this.linkPopover = null;
@@ -2413,7 +2413,7 @@ var RichClayBundle = (() => {
       }
       this._squire?.destroy?.();
       this._squire = null;
-      this.cleanupEditorAttributes({ keepDom: detached });
+      this.cleanupEditorAttributes();
       instances.delete(this.element);
     }
     saveSelection() {
@@ -2874,8 +2874,8 @@ var RichClayBundle = (() => {
       this.element.addEventListener("auxclick", this._onLinkActivation, true);
       this.element.addEventListener("clay:external-write", this._onExternalWrite);
     }
-    cleanupEditorAttributes({ keepDom = false } = {}) {
-      if (!keepDom) removeRuntimeState(this.element, "destroy");
+    cleanupEditorAttributes() {
+      removeRuntimeState(this.element, "destroy");
       this.element.removeEventListener("focus", this._onFocus);
       this.element.removeEventListener("blur", this._onBlur);
       this.element.removeEventListener("click", this._onLinkActivation, true);
