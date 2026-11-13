@@ -14,6 +14,7 @@ const mount = (markup, platform = "MacIntel") => {
 };
 
 const caretAt = (editor, node, offset) => {
+  editor.squire.focus();
   const range = node.ownerDocument.createRange();
   range.setStart(node, offset);
   range.collapse(true);

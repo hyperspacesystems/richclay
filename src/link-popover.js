@@ -25,7 +25,12 @@ export class LinkPopover {
   currentAnchor() {
     const editor = this.editor;
     if (!editor.active || editor.options.readOnly || editor.dialog) return null;
-    if (editor.element.ownerDocument.hidden) return null;
+    const doc = editor.element.ownerDocument;
+    if (doc.hidden) return null;
+    // Squire answers with its last saved selection after the caret has left the editor, so
+    // only the document's own selection says the caret is still here.
+    const live = doc.getSelection?.();
+    if (!live || !live.rangeCount || !editor.element.contains(live.anchorNode)) return null;
     return editor.currentLinkElement();
   }
 

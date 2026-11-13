@@ -189,3 +189,45 @@ test("linkPopover: false shows nothing", () => {
   assert.equal(popover(), null);
   editor.destroy();
 });
+
+test("the bar does not come back after the caret leaves the editor", async () => {
+  const { element, editor } = mount('<p>lead <a href="/one">one</a> tail</p>');
+  caretIn(editor, element.querySelector("a").firstChild, 1);
+  assert.notEqual(popover(), null);
+
+  const outside = document.createElement("p");
+  outside.textContent = "elsewhere on the page";
+  document.body.appendChild(outside);
+  document.getSelection().collapse(outside.firstChild, 0);
+
+  editor.updateLinkPopover();
+  await afterGrace();
+
+  assert.equal(document.querySelector("[data-richclay-link-popover]"), null);
+  editor.destroy();
+});
+
+test("two editors never show two bars", async () => {
+  setupRealSquire(
+    '<div data-richclay><p>lead <a href="/one">one</a> tail</p></div>' +
+    '<div data-richclay><p>lead <a href="https://example.org/two">two</a> tail</p></div>'
+  );
+  const [first, second] = document.querySelectorAll("[data-richclay]");
+  const one = new RichClay(first, { toolbar: ["link"] });
+  const two = new RichClay(second, { toolbar: ["link"] });
+
+  one.squire.focus();
+  caretIn(one, first.querySelector("a").firstChild, 1);
+  assert.notEqual(popover(), null);
+
+  two.squire.focus();
+  caretIn(two, second.querySelector("a").firstChild, 1);
+  one.updateLinkPopover();
+  two.updateLinkPopover();
+  await afterGrace();
+
+  assert.equal(document.querySelectorAll("[data-richclay-link-popover]").length, 1);
+  assert.equal(address().textContent, "example.org/two");
+  one.destroy();
+  two.destroy();
+});
