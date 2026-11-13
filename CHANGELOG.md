@@ -32,6 +32,11 @@
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-13
+
+### Fixed
+- The link popover closes when the caret leaves the editor.
+
 ## [0.8.0] - 2026-11-11
 
 ### Added
