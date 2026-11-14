@@ -403,6 +403,52 @@ test("undo restores the byte-identical pre-repair source, indentation included",
   assert.equal(element.innerHTML, SOURCE);
 });
 
+const typeText = (editor, node, start, text) => {
+  let offset = start;
+  for (const character of text) {
+    type(editor, node, offset, character);
+    offset += 1;
+  }
+};
+
+// Squire's constructor leaves _ignoreChange set, which swallows the first
+// mutation the observer sees. Let that one land before typing.
+const settle = () => new Promise(resolve => setTimeout(resolve, 5));
+
+// A live-sync frame replaces the region's content behind Squire's back. Squire's
+// undo is a whole-region snapshot, so without a fresh baseline the first undo
+// puts the pre-merge region back and erases the other person's text.
+test("undo after a live-sync frame does not roll the co-editor's text back", async () => {
+  const { element, editor } = mount("<p>start</p>");
+  await settle();
+  caretAt(editor, element.querySelector("p").firstChild, 5);
+  typeText(editor, element.querySelector("p").firstChild, 5, " mine");
+  await settle();
+  assert.equal(element.textContent, "start mine");
+
+  element.querySelector("p").textContent = "theirs plus mine";
+  editor.reattach();
+
+  editor.squire.undo();
+  assert.match(element.textContent, /theirs/);
+});
+
+// The control: reattach alone must not throw the history away, or undo stops
+// working for the editor who typed.
+test("reattach without an external change leaves the undo history alone", async () => {
+  const { element, editor } = mount("<p>start</p>");
+  await settle();
+  caretAt(editor, element.querySelector("p").firstChild, 5);
+  typeText(editor, element.querySelector("p").firstChild, 5, "a");
+  await settle();
+  assert.equal(element.textContent, "starta");
+
+  assert.equal(editor.reattach(), false);
+
+  editor.squire.undo();
+  assert.equal(element.textContent, "start");
+});
+
 // isDisabled was only read where the toolbar renders, so the shortcut and the
 // menu item reached the block commands anyway and Indent quoted a <p editable>.
 test("a block command refuses to run on a phrasing-only root", () => {

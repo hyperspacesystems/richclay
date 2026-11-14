@@ -2014,6 +2014,7 @@ var RichClayBundle = (() => {
       this.path = "";
       this.active = false;
       this._squire = null;
+      this._squireHTML = null;
       this._squireListeners = [];
       this._onBeforeInput = null;
       this._onRootBeforeInput = null;
@@ -2055,7 +2056,7 @@ var RichClayBundle = (() => {
       this.sanitizeConfig = this.options.inline ? inlineSanitizeConfig(this.options.sanitize) : this.options.sanitize;
       this.sanitizer = createSanitizer(this.sanitizeConfig, this.element.ownerDocument);
       if (!this.options.inline) {
-        sanitizeElement(this.element, this.sanitizeConfig);
+        sanitizeElement(this.element, inlineSanitizeConfig(this.options.sanitize));
       }
       if (shouldActivateEditor(this.options, this.window)) {
         this.activate();
@@ -2265,7 +2266,13 @@ var RichClayBundle = (() => {
         this.element.replaceChildren(...initialNodes);
         this.resetSquireUndoBaseline();
       } else {
-        this._squire.setHTML(initialHTML);
+        const sanitizer = this.sanitizer;
+        this.sanitizer = createSanitizer(inlineSanitizeConfig(this.options.sanitize), this.element.ownerDocument);
+        try {
+          this._squire.setHTML(initialHTML);
+        } finally {
+          this.sanitizer = sanitizer;
+        }
       }
       this.bindSquire();
       if (this.options.singleLine) this.installSingleLineGuards();
@@ -2315,6 +2322,7 @@ var RichClayBundle = (() => {
       this.updatePlaceholder();
       this.warnOnBlockInInlineRegion();
       this.element.querySelectorAll("pre").forEach((pre) => this._authoredPres.add(pre));
+      this._squireHTML = this.element.innerHTML;
     }
     // Live sync morphs the page against an incoming copy, and that copy is clean:
     // contenteditable, the marker and the runtime attributes all come back off an
@@ -2333,12 +2341,16 @@ var RichClayBundle = (() => {
     reattach() {
       if (this.unsupported || !this.active) return false;
       const intact = this.element.getAttribute("contenteditable") === "true" && this.element.getAttribute("data-richclay-active") === "true" && isMountable(this.element);
-      if (intact) return false;
-      this.ensureMarker();
-      this.applyInlineBox();
-      consumeInertContenteditable(this.element);
-      this.setupEditorAttributes();
-      return true;
+      if (!intact) {
+        this.ensureMarker();
+        this.applyInlineBox();
+        consumeInertContenteditable(this.element);
+        this.setupEditorAttributes();
+      }
+      if (this._squire && this.element.innerHTML !== this._squireHTML) {
+        this.resetSquireUndoBaseline();
+      }
+      return !intact;
     }
     // A block inside an inline element renders as a run-on. This changes the box
     // and nothing else: whether a region survives a reload is decided by the
@@ -2918,6 +2930,7 @@ var RichClayBundle = (() => {
     }
     bindSquire() {
       const input = () => {
+        this._squireHTML = this.element.innerHTML;
         this.saveSelection();
         this.updatePlaceholder();
         this.options.onChange?.(this.getHTML());
@@ -3139,6 +3152,7 @@ var RichClayBundle = (() => {
       if (!squire || !Array.isArray(squire._undoStack) || typeof squire.saveUndoState !== "function") {
         return;
       }
+      this._squireHTML = this.element.innerHTML;
       squire._undoStack.length = 0;
       squire._undoStackLength = 0;
       squire._undoIndex = -1;

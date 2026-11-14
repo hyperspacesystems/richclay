@@ -204,6 +204,9 @@ export default class RichClay {
     this.path = "";
     this.active = false;
     this._squire = null;
+    // The element's own HTML as of the last thing Squire did, so reattach() can
+    // tell a live-sync frame from an edit this editor made.
+    this._squireHTML = null;
     this._squireListeners = [];
     this._onBeforeInput = null;
     this._onRootBeforeInput = null;
@@ -255,10 +258,13 @@ export default class RichClay {
       : this.options.sanitize;
     this.sanitizer = createSanitizer(this.sanitizeConfig, this.element.ownerDocument);
     if (!this.options.inline) {
-      // Card editors sanitize their region up front. Inline editors must not:
-      // the content is the page's own live DOM, and rewriting it on activation
-      // would destroy author markup (classes, images, data attributes).
-      sanitizeElementInPlace(this.element, this.sanitizeConfig);
+      // Card editors clean their region up front, but with the same extended
+      // allowlist inline editors use for ingress (images, classes, ids, data
+      // attributes), so the author's own markup survives while scripts and
+      // handlers do not. Inline editors are not sanitized here at all: the
+      // content is the page's own live DOM. Paste and setHTML still use the
+      // card allowlist.
+      sanitizeElementInPlace(this.element, inlineSanitizeConfig(this.options.sanitize));
     }
 
     if (shouldActivateEditor(this.options, this.window)) {
@@ -519,7 +525,17 @@ export default class RichClay {
       this.element.replaceChildren(...initialNodes);
       this.resetSquireUndoBaseline();
     } else {
-      this._squire.setHTML(initialHTML);
+      // This pass is the construction clean, not an ingress: the constructor
+      // already ran the extended allowlist over these nodes, and running the
+      // card allowlist over them here is what deleted the author's images. Paste
+      // and setHTML() keep the card allowlist.
+      const sanitizer = this.sanitizer;
+      this.sanitizer = createSanitizer(inlineSanitizeConfig(this.options.sanitize), this.element.ownerDocument);
+      try {
+        this._squire.setHTML(initialHTML);
+      } finally {
+        this.sanitizer = sanitizer;
+      }
     }
 
     this.bindSquire();
@@ -581,6 +597,7 @@ export default class RichClay {
     this.warnOnBlockInInlineRegion();
     // Whatever <pre> elements exist before the first command are the author's.
     this.element.querySelectorAll("pre").forEach(pre => this._authoredPres.add(pre));
+    this._squireHTML = this.element.innerHTML;
   }
 
   // Live sync morphs the page against an incoming copy, and that copy is clean:
@@ -605,12 +622,20 @@ export default class RichClay {
       this.element.getAttribute("contenteditable") === "true" &&
       this.element.getAttribute("data-richclay-active") === "true" &&
       isMountable(this.element);
-    if (intact) return false;
-    this.ensureMarker();
-    this.applyInlineBox();
-    consumeInertContenteditable(this.element);
-    this.setupEditorAttributes();
-    return true;
+    if (!intact) {
+      this.ensureMarker();
+      this.applyInlineBox();
+      consumeInertContenteditable(this.element);
+      this.setupEditorAttributes();
+    }
+    // A live-sync frame replaces this region's content with the peer's copy
+    // without going through Squire, so Squire's undo history still holds the
+    // pre-merge region and the first undo would erase the other person's text.
+    // Make the merged content the baseline instead.
+    if (this._squire && this.element.innerHTML !== this._squireHTML) {
+      this.resetSquireUndoBaseline();
+    }
+    return !intact;
   }
 
   // A block inside an inline element renders as a run-on. This changes the box
@@ -1338,6 +1363,7 @@ export default class RichClay {
 
   bindSquire() {
     const input = () => {
+      this._squireHTML = this.element.innerHTML;
       this.saveSelection();
       this.updatePlaceholder();
       this.options.onChange?.(this.getHTML());
@@ -1607,6 +1633,7 @@ export default class RichClay {
     if (!squire || !Array.isArray(squire._undoStack) || typeof squire.saveUndoState !== "function") {
       return;
     }
+    this._squireHTML = this.element.innerHTML;
     squire._undoStack.length = 0;
     squire._undoStackLength = 0;
     squire._undoIndex = -1;

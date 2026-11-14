@@ -151,8 +151,61 @@ test("hostile initial content is sanitized in the live DOM even without activati
 
   assert.equal(editor.active, false);
   assert.equal(editor.element.querySelector("script"), null);
+  const img = editor.element.querySelector("img");
+  assert.ok(img);
+  assert.equal(img.getAttribute("onerror"), null);
+  assert.equal(img.getAttribute("src"), "x");
+  assert.equal(editor.element.innerHTML, '<p>Keep</p><img src="x">');
+});
+
+// The author's own region keeps its markup through the construction clean: the
+// card allowlist has no img, class or id, so running it here deleted the images
+// on every edit-mode open and the next save wrote the loss into the file.
+test("card construction keeps the author's images, classes and ids", () => {
+  const markup =
+    '<!doctype html><html><body><div data-richclay><p class="lead" id="intro">Hi</p><img src="photo.jpg" alt="A" width="10" height="20"></div></body></html>';
+  const assertPreserved = editor => {
+    const paragraph = editor.element.querySelector("p");
+    assert.equal(paragraph.getAttribute("class"), "lead");
+    assert.equal(paragraph.getAttribute("id"), "intro");
+    const img = editor.element.querySelector("img");
+    assert.ok(img);
+    assert.equal(img.getAttribute("src"), "photo.jpg");
+    assert.equal(img.getAttribute("alt"), "A");
+    assert.equal(img.getAttribute("width"), "10");
+    assert.equal(img.getAttribute("height"), "20");
+  };
+
+  setupDom(markup);
+  const activated = new RichClay(document.querySelector("[data-richclay]"), {
+    Squire: FakeSquire,
+    toolbar: []
+  });
+  assert.equal(activated.active, true);
+  assertPreserved(activated);
+
+  setupDom(markup);
+  const inactive = new RichClay(document.querySelector("[data-richclay]"), {
+    Squire: FakeSquire,
+    readOnly: true
+  });
+  assert.equal(inactive.active, false);
+  assertPreserved(inactive);
+});
+
+// Only the construction clean is extended. Ingress stays on the card allowlist.
+test("setHTML on a card editor still drops images and classes", () => {
+  setupDom('<!doctype html><html><body><div data-richclay><p>Hi</p></div></body></html>');
+  const editor = new RichClay(document.querySelector("[data-richclay]"), {
+    Squire: FakeSquire,
+    toolbar: []
+  });
+
+  editor.setHTML('<p class="x">a</p><img src="y.jpg">');
+
   assert.equal(editor.element.querySelector("img"), null);
-  assert.equal(editor.element.innerHTML, "<p>Keep</p>");
+  assert.equal(editor.element.querySelector("p").getAttribute("class"), null);
+  assert.equal(editor.getHTML(), "<p>a</p>");
 });
 
 test("onChange fires with sanitized HTML when content changes", () => {
