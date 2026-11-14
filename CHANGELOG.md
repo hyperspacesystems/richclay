@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-14
+
 ### Added
 - `RichClay.setSavedContent(element, html)` writes saved content back to a field and restarts its undo baseline there
 - `RichClay.hostHistory` lets a host that owns the page's undo timeline switch off the field's own history
@@ -11,6 +13,10 @@
 - Browser undo/redo input and Ctrl+Y on Windows and Linux go through `editor.history()`
 - Mounting, reattaching and destroying pause `window.clay.Mutation` so the host autosave does not record runtime attributes
 
+### Fixed
+- Card editors keep the author's images, classes and data attributes when they become active.
+- Reattaching a field tells a live-sync frame apart from an edit, so a synced update is not treated as the reader's own change.
+- Content saved from a field is the same on mount as it is after editing.
 
 ## [0.6.1] - 2026-10-15
 
