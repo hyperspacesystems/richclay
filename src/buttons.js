@@ -160,7 +160,7 @@ export const defaultButtons = [
     group: "history",
     shortcut: "Mod+Z",
     mutates: false,
-    run: editor => editor.squire.undo()
+    run: editor => editor.history("undo")
   },
   {
     id: "redo",
@@ -170,7 +170,7 @@ export const defaultButtons = [
     group: "history",
     shortcut: "Mod+Shift+Z",
     mutates: false,
-    run: editor => editor.squire.redo()
+    run: editor => editor.history("redo")
   },
   {
     id: "clearFormatting",

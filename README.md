@@ -140,6 +140,7 @@ const editors = RichClay.init("[data-richclay]", options);
 editor.getHTML();
 editor.setHTML("<p>Hello</p>");
 editor.focus();
+editor.history("undo");
 editor.destroy();
 editor.registerButton(def);
 editor.unregisterButton(id);
@@ -150,6 +151,10 @@ RichClay.unregisterButton(id);
 RichClay.presets;
 RichClay.selector;
 RichClay.stripFromClone(document.documentElement);
+RichClay.savedContent(element);
+RichClay.setSavedContent(element, html);
+RichClay.hostHistory;
+RichClay.keepsOwnHistory;
 RichClay.watch(win, options);
 ```
 
@@ -167,6 +172,20 @@ Options:
 | `Squire` | `null` | Optional constructor override, mainly for tests. |
 
 `new RichClay(element)` is idempotent per element. Calling it again with the same element returns the existing instance.
+
+`editor.history(direction)` undoes (`"undo"`) or redoes (`"redo"`) this field's own step and returns the editor; when the field has no step left it dispatches a bubbling `richclay:history-exhausted` event with `detail.direction`, so the host can run its own page undo instead of the field silently doing nothing.
+
+`RichClay.savedContent(element)` returns the content (child markup) that field would save, the same string whether its editor is mounted, destroyed or never mounted, and `undefined` for an element richclay does not own; a host's page undo compares it to tell a real text change from editor runtime state.
+
+`RichClay.setSavedContent(element, html, { morph })` writes saved content back to a field exactly, returns `true`, and restarts the field's own undo baseline there, so the next edit undoes to the written content; it returns `false` and changes nothing for an element richclay does not own. Pass `morph`, a synchronous `morph(root, html, options)`, when the write must land before the call returns (an undo engine that rebaselines right after it); without it the page's `clay.morph` is used, which may apply later.
+
+`RichClay.hostHistory` is a static boolean, `false` by default. When a host owns the page's undo timeline it sets it to `true`: then `editor.canHistory(direction)` answers `false` and `editor.history(direction)` dispatches `richclay:history-exhausted`, so the host's page undo runs instead. A field the author marked `no-undo` keeps its own history either way.
+
+`RichClay.keepsOwnHistory` is a static function `(element) => boolean`, `null` by default. A host sets it to name the fields its own author kept out of page undo: such a field keeps its own Squire history even while `hostHistory` is on, so `canHistory` answers from the field.
+
+Each mount dispatches a bubbling `richclay:mount` event on the field, so the host can start tracking it. `editor.replaceContent(html)` replaces the field's children the same way Squire's own undo does.
+
+Mounting, reattaching and destroying an editor pause `window.clay.Mutation` around their own DOM writes when that hub is present, so the host's autosave does not record richclay's runtime attributes as edits.
 
 ## Toolbar
 

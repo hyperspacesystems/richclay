@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `RichClay.setSavedContent(element, html)` writes saved content back to a field and restarts its undo baseline there
+- `RichClay.hostHistory` lets a host that owns the page's undo timeline switch off the field's own history
+- `editor.replaceContent(html)` and a bubbling `richclay:mount` event on every mount
+- `RichClay.savedContent(element)` returns the content (child markup) a field would save, identical whether it is mounted, destroyed or never mounted
+- `editor.history(direction)` returns the editor and dispatches `richclay:history-exhausted` when the field has no step left
+- Browser undo/redo input and Ctrl+Y on Windows and Linux go through `editor.history()`
+- Mounting, reattaching and destroying pause `window.clay.Mutation` so the host autosave does not record runtime attributes
+
+
 ## [0.6.1] - 2026-10-15
 
 ### Changed

@@ -202,7 +202,7 @@ var RichClayBundle = (() => {
       group: "history",
       shortcut: "Mod+Z",
       mutates: false,
-      run: (editor) => editor.squire.undo()
+      run: (editor) => editor.history("undo")
     },
     {
       id: "redo",
@@ -212,7 +212,7 @@ var RichClayBundle = (() => {
       group: "history",
       shortcut: "Mod+Shift+Z",
       mutates: false,
-      run: (editor) => editor.squire.redo()
+      run: (editor) => editor.history("redo")
     },
     {
       id: "clearFormatting",
@@ -1987,6 +1987,8 @@ var RichClayBundle = (() => {
   var RichClay = class _RichClay {
     static presets = presets;
     static selector = RICHCLAY_SELECTOR;
+    static hostHistory = false;
+    static keepsOwnHistory = null;
     constructor(element, options = {}) {
       if (!element) throw new Error("RichClay requires an element.");
       const existing = instances.get(element);
@@ -2017,6 +2019,7 @@ var RichClayBundle = (() => {
       this._squireHTML = null;
       this._squireListeners = [];
       this._onBeforeInput = null;
+      this._onHistoryInput = null;
       this._onRootBeforeInput = null;
       this._onRootKeydown = null;
       this._onRootTransfer = null;
@@ -2179,6 +2182,35 @@ var RichClayBundle = (() => {
       }
       removeRuntimeState(element, "destroy");
     }
+    // The content this field would save, the same whether its editor is mounted,
+    // destroyed or never mounted. A host's undo uses it to tell a real text change
+    // from editor runtime state. Only the field's children are returned: mounting
+    // rewrites the field element's own attributes (style serialization, attribute
+    // order, contenteditable and inert-contenteditable) without any edit, so they
+    // cannot tell a change from a mount. Returns undefined for an element richclay
+    // does not own.
+    static savedContent(element) {
+      if (!element || typeof element.matches !== "function") return void 0;
+      if (!element.matches(RICHCLAY_SELECTOR) || !isRichClayHost(element)) return void 0;
+      const holder = element.ownerDocument.createElement("div");
+      const clone = element.cloneNode(true);
+      clone.setAttribute("data-richclay-active", "true");
+      holder.append(clone);
+      stripRichClayFromClone(holder);
+      return holder.firstElementChild ? holder.firstElementChild.innerHTML : "";
+    }
+    static setSavedContent(element, html, { morph } = {}) {
+      if (typeof _RichClay.savedContent(element) !== "string") return false;
+      const instance = instances.get(element);
+      if (!instance || !instance.active) {
+        element.innerHTML = html;
+        return true;
+      }
+      instance.replaceContent(html, morph);
+      instance._onExternalWrite();
+      instance.toolbar?.update();
+      return true;
+    }
     registerButton(def) {
       validateButton(def);
       this.registry.set(def.id, def);
@@ -2190,7 +2222,44 @@ var RichClayBundle = (() => {
       if (this.active) this.renderToolbar();
       return this;
     }
+    canHistory(direction) {
+      const squire = this._squire;
+      if (!squire) return false;
+      if (_RichClay.hostHistory && this.element.hasAttribute("data-richclay-runtime-no-undo") && !_RichClay.keepsOwnHistory?.(this.element)) return false;
+      if (direction === "redo") return squire._undoIndex + 1 < squire._undoStackLength && squire._isInUndoState;
+      return squire._undoIndex > 0 || !squire._isInUndoState;
+    }
+    history(direction) {
+      if (this.canHistory(direction)) {
+        if (direction === "redo") this._squire.redo();
+        else this._squire.undo();
+        return this;
+      }
+      this.element.dispatchEvent(
+        new this.window.CustomEvent("richclay:history-exhausted", { bubbles: true, detail: { direction } })
+      );
+      return this;
+    }
+    quiet(fn) {
+      const hub = this.window.clay?.Mutation;
+      if (typeof hub?.pause !== "function" || typeof hub?.resume !== "function") return fn();
+      hub.pause();
+      try {
+        return fn();
+      } finally {
+        hub.resume();
+      }
+    }
     activate() {
+      return this.quiet(() => this.activateNow());
+    }
+    destroy() {
+      return this.quiet(() => this.destroyNow());
+    }
+    reattach() {
+      return this.quiet(() => this.reattachNow());
+    }
+    activateNow() {
       if (this.unsupported) return;
       if (this.active) return;
       this.active = true;
@@ -2211,20 +2280,7 @@ var RichClayBundle = (() => {
         willCutCopy: (html) => clipboardHTML(html, this.element.ownerDocument),
         toPlainText: (html) => clipboardText(html, this.element.ownerDocument),
         replaceRoot: (root, html, editor) => {
-          const morph = this.window.clay?.morph || this.window.hyperclay?.morph;
-          if (typeof morph !== "function") {
-            if (root.querySelector('[editor-ui], [clay~="editor-ui"]')) {
-              throw new Error("RichClay requires a retention-aware morph host to replay history containing editor-ui.");
-            }
-            root.innerHTML = html;
-            return;
-          }
-          morph(root, html, {
-            morphStyle: "innerHTML",
-            restoreFocus: false,
-            scripts: { handle: false, merge: false },
-            policy: "history"
-          });
+          if (!this.replaceContent(html)) return;
           editor._ensureBottomLine();
           editor._mutation?.takeRecords();
         },
@@ -2283,6 +2339,19 @@ var RichClayBundle = (() => {
       this.maskSquireCodeShortcut();
       this.maskSquireBlockShortcuts();
       this.installShortcuts();
+      this._onHistoryInput = (event) => {
+        if (!this.element.contains(event.target)) return;
+        if (event.inputType !== "historyUndo" && event.inputType !== "historyRedo") return;
+        const target = event.target;
+        if (target !== this.element && target.closest?.('input, textarea, select, [editor-ui], [clay~="editor-ui"]')) {
+          event.stopPropagation();
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.history(event.inputType === "historyRedo" ? "redo" : "undo");
+      };
+      this.element.ownerDocument.addEventListener("beforeinput", this._onHistoryInput, true);
       if (this.options.linkLabel) this.maskFormattingShortcuts();
       if (this.options.inline) {
         this._onToolbarKey = (event) => {
@@ -2323,6 +2392,7 @@ var RichClayBundle = (() => {
       this.warnOnBlockInInlineRegion();
       this.element.querySelectorAll("pre").forEach((pre) => this._authoredPres.add(pre));
       this._squireHTML = this.element.innerHTML;
+      this.element.dispatchEvent(new this.window.CustomEvent("richclay:mount", { bubbles: true }));
     }
     // Live sync morphs the page against an incoming copy, and that copy is clean:
     // contenteditable, the marker and the runtime attributes all come back off an
@@ -2338,7 +2408,7 @@ var RichClayBundle = (() => {
     //
     // Returns whether it had to do anything, so a caller can tell a repair from a
     // no-op without asking the same question twice.
-    reattach() {
+    reattachNow() {
       if (this.unsupported || !this.active) return false;
       const intact = this.element.getAttribute("contenteditable") === "true" && this.element.getAttribute("data-richclay-active") === "true" && isMountable(this.element);
       if (!intact) {
@@ -2361,6 +2431,23 @@ var RichClayBundle = (() => {
         this.element.style.display = "inline-block";
         this.element.setAttribute("data-richclay-runtime-display", "true");
       }
+    }
+    replaceContent(html, morph = this.window.clay?.morph || this.window.hyperclay?.morph) {
+      const root = this.element;
+      if (typeof morph !== "function") {
+        if (root.querySelector('[editor-ui], [clay~="editor-ui"]')) {
+          throw new Error("RichClay requires a retention-aware morph host to replay history containing editor-ui.");
+        }
+        root.innerHTML = html;
+        return false;
+      }
+      morph(root, html, {
+        morphStyle: "innerHTML",
+        restoreFocus: false,
+        scripts: { handle: false, merge: false },
+        policy: "history"
+      });
+      return true;
     }
     getHTML() {
       return this._squire ? this._squire.getHTML() : this.element.innerHTML;
@@ -2385,7 +2472,7 @@ var RichClayBundle = (() => {
       else this.element.focus();
       return this;
     }
-    destroy() {
+    destroyNow() {
       this.closeLinkDialog();
       this.linkPopover?.destroy();
       this.linkPopover = null;
@@ -2409,6 +2496,10 @@ var RichClayBundle = (() => {
       if (this._onBeforeInput) {
         this.element.ownerDocument.removeEventListener("beforeinput", this._onBeforeInput, true);
         this._onBeforeInput = null;
+      }
+      if (this._onHistoryInput) {
+        this.element.ownerDocument.removeEventListener("beforeinput", this._onHistoryInput, true);
+        this._onHistoryInput = null;
       }
       const doc = this.element.ownerDocument;
       if (this._onRootBeforeInput) {
@@ -3068,6 +3159,16 @@ var RichClayBundle = (() => {
         });
         this._shortcutKeys.push(key);
       });
+      if (!isApplePlatform(this.window)) {
+        const redo = defs.find((def) => def.id === "redo" && def.shortcut);
+        if (redo && !redo.isDisabled?.(this)) {
+          this._squire.setKeyHandler("Ctrl-y", (squire, event) => {
+            event.preventDefault();
+            this.runControl(redo);
+          });
+          this._shortcutKeys.push("Ctrl-y");
+        }
+      }
     }
     // Formatting typed into a link label would be dropped by the next save of the shared
     // store, which keeps only its text and address. Squire binds bold, italic and underline
