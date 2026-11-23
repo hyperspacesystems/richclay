@@ -169,6 +169,7 @@ const LINK_LABEL_CONTROLS = ["link", "undo", "redo"];
 export default class RichClay {
   static presets = presets;
   static selector = RICHCLAY_SELECTOR;
+  static checklist = true;
   static hostHistory = false;
   static keepsOwnHistory = null;
 
@@ -239,12 +240,41 @@ export default class RichClay {
       event.preventDefault();
     };
 
+    this._onCheckboxMouseDown = event => {
+      if (!this.active || this.options.readOnly) return;
+      const box = this.ownedCheckbox(event.target);
+      if (box) event.preventDefault();
+    };
+
+    this._onCheckboxClick = event => {
+      if (!this.active || this.options.readOnly) return;
+      const box = this.ownedCheckbox(event.target);
+      if (!box) return;
+      const next = Boolean(box.checked);
+      this._squire?.saveUndoState?.();
+      if (typeof this._squire?.modifyDocument === "function") {
+        this._squire.modifyDocument(() => {
+          if (next) box.setAttribute("checked", "");
+          else box.removeAttribute("checked");
+          box.checked = next;
+        });
+        this._squire._docWasChanged?.();
+      } else {
+        if (next) box.setAttribute("checked", "");
+        else box.removeAttribute("checked");
+        box.checked = next;
+      }
+      this._squireHTML = this.element.innerHTML;
+      announce(this.liveRegion, next ? "Checked" : "Unchecked");
+    };
+
     // The host rewrote this region's content (a shared value another page changed). That is
     // not an edit here: drop Squire's view of the write and start undo from the new content,
     // or the first undo would put the older value back.
     this._onExternalWrite = () => {
       if (!this._squire) return;
       this._squire._mutation?.takeRecords();
+      this.syncCheckboxProperties();
       if (this.options.linkLabel) this._labelHref = this.element.querySelector("a[href]")?.getAttribute("href") ?? this._labelHref;
       this.resetSquireUndoBaseline();
       this.updatePlaceholder();
@@ -606,8 +636,10 @@ export default class RichClay {
     }
 
     this.bindSquire();
+    this.syncCheckboxProperties();
     if (this.options.singleLine) this.installSingleLineGuards();
     if (this.options.inline && !this.options.singleLine) this.installRootGuards();
+    if (!this.options.singleLine) this.installChecklistKeys();
     // Before installShortcuts, so an explicitly declared Ctrl+ shortcut wins.
     this.installAppleDeleteKeys();
     // Squire appends a default block whenever the root's last element child is not
@@ -675,8 +707,9 @@ export default class RichClay {
     this.renderToolbar();
     this.updatePlaceholder();
     this.warnOnBlockInInlineRegion();
-    // Whatever <pre> elements exist before the first command are the author's.
+    //Whatever <pre> and <ul data-checklist> elements exist before the first command are the author's.
     this.element.querySelectorAll("pre").forEach(pre => this._authoredPres.add(pre));
+    this._authoredChecklists = new WeakSet(this.element.querySelectorAll("ul[data-checklist]"));
     this._squireHTML = this.element.innerHTML;
     this.element.dispatchEvent(new this.window.CustomEvent("richclay:mount", { bubbles: true }));
   }
@@ -714,6 +747,7 @@ export default class RichClay {
     // pre-merge region and the first undo would erase the other person's text.
     // Make the merged content the baseline instead.
     if (this._squire && this.element.innerHTML !== this._squireHTML) {
+      this.syncCheckboxProperties();
       this.resetSquireUndoBaseline();
     }
     return !intact;
@@ -737,6 +771,7 @@ export default class RichClay {
         throw new Error('RichClay requires a retention-aware morph host to replay history containing editor-ui.');
       }
       root.innerHTML = html;
+      this.syncCheckboxProperties();
       return false;
     }
     morph(root, html, {
@@ -745,6 +780,7 @@ export default class RichClay {
       scripts: { handle: false, merge: false },
       policy: 'history',
     });
+    this.syncCheckboxProperties();
     return true;
   }
 
@@ -807,6 +843,10 @@ export default class RichClay {
     }
 
     const doc = this.element.ownerDocument;
+    if (this._onChecklistKeydown) {
+      doc.removeEventListener("keydown", this._onChecklistKeydown, true);
+      this._onChecklistKeydown = null;
+    }
     if (this._onRootBeforeInput) {
       doc.removeEventListener("beforeinput", this._onRootBeforeInput, true);
       this._onRootBeforeInput = null;
@@ -949,10 +989,13 @@ export default class RichClay {
     // heal below cannot undo it.
     if (def.mutates !== false) this.ensureRootIsEditable();
     const result = def.run(this);
-    // Stamp any <pre> this command just created, so the save hook can contain it
-    // without touching one the author wrote themselves.
+    // Stamp any <pre> or checklist <ul> this command just created, so the save hook can
+    // contain it without touching one the author wrote themselves.
     this.element.querySelectorAll("pre:not([data-richclay-pre])").forEach(pre => {
       if (!this._authoredPres.has(pre)) pre.setAttribute("data-richclay-pre", "");
+    });
+    this.element.querySelectorAll("ul[data-checklist]:not([data-richclay-checklist])").forEach(list => {
+      if (!this._authoredChecklists?.has(list)) list.setAttribute("data-richclay-checklist", "");
     });
     // After it too. Squire's removeCode() splices an emptied <pre> out onto the
     // root, and a caret parked on the orphan makes every later block command a
@@ -1057,8 +1100,197 @@ export default class RichClay {
   }
 
   toggleList(tag) {
+    if (tag === "UL" && this.inChecklist()) {
+      return this.convertChecklistToList("UL");
+    }
+    if (tag === "OL" && this.inChecklist()) {
+      return this.convertChecklistToList("OL");
+    }
     if (this.pathHas(tag)) return this._squire.removeList();
     return tag === "UL" ? this._squire.makeUnorderedList() : this._squire.makeOrderedList();
+  }
+
+  ownedCheckbox(target) {
+    if (!target || target.nodeType !== 1 || target.nodeName !== "INPUT") return null;
+    if ((target.getAttribute("type") || "").toLowerCase() !== "checkbox") return null;
+    if (!this.element.contains(target)) return null;
+    const chrome = closestWithCapability(target, "history");
+    if (chrome && chrome !== this.element && this.element.contains(chrome) && chrome.contains(target)) return null;
+    return target;
+  }
+
+  syncCheckboxProperties() {
+    this.element.querySelectorAll?.('input[type="checkbox"]').forEach(box => {
+      if (this.ownedCheckbox(box)) box.checked = box.hasAttribute("checked");
+    });
+  }
+
+  inChecklist() {
+    if (this.pathHas("ul[data-checklist]")) return true;
+    const range = getSquireSelection(this._squire);
+    if (!range) return false;
+    const li = matchAtBoundary(this.element, range.startContainer, range.startOffset, true, "li");
+    return Boolean(li && li.parentElement?.nodeName === "UL" && leadingCheckbox(li));
+  }
+
+  selectedListItems() {
+    const range = getSquireSelection(this._squire);
+    if (!range) return [];
+    const startLi = matchAtBoundary(this.element, range.startContainer, range.startOffset, true, "li");
+    const endLi = matchAtBoundary(this.element, range.endContainer, range.endOffset, false, "li");
+    if (!startLi) return [];
+    if (!endLi || startLi === endLi) return [startLi];
+    const all = Array.from(this.element.querySelectorAll("li"));
+    const a = all.indexOf(startLi);
+    const b = all.indexOf(endLi);
+    if (a < 0 || b < 0) return [startLi];
+    return all.slice(Math.min(a, b), Math.max(a, b) + 1);
+  }
+
+  convertChecklistToList(tag) {
+    const items = this.selectedListItems();
+    const lists = new Set(items.map(li => li.parentElement).filter(el => el?.nodeName === "UL"));
+    this._squire.saveUndoState();
+    items.forEach(stripLeadingCheckbox);
+    lists.forEach(ul => {
+      if (!Array.from(ul.children).some(li => li.nodeName === "LI" && leadingCheckbox(li))) {
+        ul.removeAttribute("data-checklist");
+        ul.removeAttribute("data-richclay-checklist");
+      }
+    });
+    if (tag === "OL") return this._squire.makeOrderedList();
+    this._squire._docWasChanged?.();
+    return this._squire.focus?.();
+  }
+
+  toggleChecklist() {
+    if (this.inChecklist()) {
+      const items = this.selectedListItems();
+      const lists = new Set(items.map(li => li.parentElement).filter(el => el?.nodeName === "UL"));
+      items.forEach(stripLeadingCheckbox);
+      lists.forEach(ul => {
+        if (!Array.from(ul.children).some(li => li.nodeName === "LI" && leadingCheckbox(li))) {
+          ul.removeAttribute("data-checklist");
+          ul.removeAttribute("data-richclay-checklist");
+        }
+      });
+      return this._squire.removeList();
+    }
+
+    if (!this.pathHas("UL")) {
+      this._squire.makeUnorderedList();
+    }
+    const items = this.selectedListItems();
+    if (!items.length) return this.focus();
+    const doc = this.element.ownerDocument;
+    const lists = new Set();
+    const decorate = () => {
+      items.forEach(li => {
+        if (li.parentElement?.nodeName === "UL") lists.add(li.parentElement);
+        ensureLeadingCheckbox(li, doc);
+      });
+      lists.forEach(ul => ul.setAttribute("data-checklist", ""));
+    };
+    if (typeof this._squire.modifyDocument === "function") {
+      this._squire.modifyDocument(decorate);
+      this._squire._docWasChanged?.();
+    } else {
+      decorate();
+    }
+    placeCaretAfterCheckbox(this._squire, items[items.length - 1], true);
+    return this.focus();
+  }
+
+  installChecklistKeys() {
+    const doc = this.element.ownerDocument;
+    this._onChecklistKeydown = event => {
+      if (!this.active || this.options.readOnly || event.defaultPrevented || event.isComposing) return;
+      if (!this.element.contains(event.target)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key !== "Enter" && event.key !== "Backspace") return;
+      if (event.key === "Enter" && event.shiftKey) return;
+
+      const range = getSquireSelection(this._squire);
+      if (!range || !range.collapsed) return;
+      const li = matchAtBoundary(this.element, range.startContainer, range.startOffset, true, "li");
+      const box = li ? leadingCheckbox(li) : null;
+      if (!li || !box) return;
+
+      if (event.key === "Backspace") {
+        if (!caretAtChecklistItemStart(li, box, range)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this._squire.saveUndoState(range);
+        const ul = li.parentElement;
+        const apply = () => {
+          stripLeadingCheckbox(li);
+          if (ul?.nodeName === "UL" && !Array.from(ul.children).some(c => c.nodeName === "LI" && leadingCheckbox(c))) {
+            ul.removeAttribute("data-checklist");
+            ul.removeAttribute("data-richclay-checklist");
+          }
+        };
+        if (typeof this._squire.modifyDocument === "function") this._squire.modifyDocument(apply);
+        else apply();
+        const edge = caretEdge(li, true);
+        const nextRange = doc.createRange();
+        nextRange.setStart(edge, 0);
+        nextRange.collapse(true);
+        restoreSquireSelection(this._squire, nextRange);
+        this.saveSelection();
+        this._squire._docWasChanged?.();
+        return;
+      }
+
+      // Enter inside a checklist item
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (!checklistItemHasBody(li, box)) {
+        this._squire.saveUndoState(range);
+        const ul = li.parentElement;
+        if (typeof this._squire.modifyDocument === "function") {
+          this._squire.modifyDocument(() => stripLeadingCheckbox(li));
+        } else {
+          stripLeadingCheckbox(li);
+        }
+        this._squire.decreaseListLevel?.();
+        if (ul?.isConnected && ul.nodeName === "UL" && !Array.from(ul.children).some(c => c.nodeName === "LI" && leadingCheckbox(c))) {
+          ul.removeAttribute("data-checklist");
+          ul.removeAttribute("data-richclay-checklist");
+        }
+        this.saveSelection();
+        this._squire._docWasChanged?.();
+        return;
+      }
+
+      if (caretAtChecklistItemStart(li, box, range)) {
+        this._squire.saveUndoState(range);
+        const prevLi = doc.createElement("li");
+        const apply = () => {
+          ensureLeadingCheckbox(prevLi, doc);
+          prevLi.appendChild(doc.createElement("br"));
+          li.parentNode.insertBefore(prevLi, li);
+        };
+        if (typeof this._squire.modifyDocument === "function") this._squire.modifyDocument(apply);
+        else apply();
+        placeCaretAfterCheckbox(this._squire, li, false);
+        this.saveSelection();
+        this._squire._docWasChanged?.();
+        return;
+      }
+
+      this._squire.splitBlock?.(false, range);
+      const afterLi = li.nextElementSibling;
+      if (afterLi && afterLi.nodeName === "LI") {
+        const decorateNext = () => ensureLeadingCheckbox(afterLi, doc);
+        if (typeof this._squire.modifyDocument === "function") this._squire.modifyDocument(decorateNext);
+        else decorateNext();
+        placeCaretAfterCheckbox(this._squire, afterLi, false);
+        this.saveSelection();
+        this._squire._docWasChanged?.();
+      }
+    };
+    doc.addEventListener("keydown", this._onChecklistKeydown, true);
   }
 
   indent() {
@@ -1414,6 +1646,8 @@ export default class RichClay {
 
     this.element.addEventListener("focus", this._onFocus);
     this.element.addEventListener("blur", this._onBlur);
+    this.element.addEventListener("mousedown", this._onCheckboxMouseDown);
+    this.element.addEventListener("click", this._onCheckboxClick);
     this.element.addEventListener("click", this._onLinkActivation, true);
     this.element.addEventListener("auxclick", this._onLinkActivation, true);
     this.element.addEventListener("clay:external-write", this._onExternalWrite);
@@ -1423,6 +1657,8 @@ export default class RichClay {
     removeRuntimeState(this.element, "destroy");
     this.element.removeEventListener("focus", this._onFocus);
     this.element.removeEventListener("blur", this._onBlur);
+    this.element.removeEventListener("mousedown", this._onCheckboxMouseDown);
+    this.element.removeEventListener("click", this._onCheckboxClick);
     this.element.removeEventListener("click", this._onLinkActivation, true);
     this.element.removeEventListener("auxclick", this._onLinkActivation, true);
     this.element.removeEventListener("clay:external-write", this._onExternalWrite);
@@ -1757,7 +1993,7 @@ export default class RichClay {
   updatePlaceholder() {
     const view = createContentView(this.element, { capability: 'history', inherit: false });
     const text = view.text().replace(/\u200B/g, "").trim();
-    const hasMeaningfulElement = view.root.querySelector("img, video, audio, iframe, table");
+    const hasMeaningfulElement = view.root.querySelector('img, video, audio, iframe, table, input[type="checkbox"]');
     const isEmpty = !text && !hasMeaningfulElement;
     this.element.classList.toggle("richclay-empty", isEmpty);
   }
@@ -1878,6 +2114,99 @@ function shortcutKey(shortcut, win) {
 
 function normalizeModifier(modifier) {
   return modifier === "Cmd" ? "Meta" : modifier;
+}
+
+function leadingCheckbox(li) {
+  for (const child of li.childNodes) {
+    if (child.nodeType === 8) continue;
+    if (child.nodeType === 3 && !/\S/.test(child.nodeValue.replace(/\u200B/g, ""))) continue;
+    if (
+      child.nodeType === 1 &&
+      child.nodeName === "INPUT" &&
+      (child.getAttribute("type") || "").toLowerCase() === "checkbox"
+    ) {
+      return child;
+    }
+    return null;
+  }
+  return null;
+}
+
+function ensureLeadingCheckbox(li, doc) {
+  let box = leadingCheckbox(li);
+  if (box) return box;
+  box = doc.createElement("input");
+  box.setAttribute("type", "checkbox");
+  const first = li.firstChild;
+  if (!first || (first.nodeType === 1 && first.nodeName === "BR")) {
+    li.insertBefore(box, first);
+    li.insertBefore(doc.createTextNode(" "), first);
+    return box;
+  }
+  if (first.nodeType === 3) {
+    if (!/^\s/.test(first.nodeValue)) first.nodeValue = ` ${first.nodeValue}`;
+    li.insertBefore(box, first);
+    return box;
+  }
+  li.insertBefore(doc.createTextNode(" "), first);
+  li.insertBefore(box, li.firstChild);
+  return box;
+}
+
+function stripLeadingCheckbox(li) {
+  const box = leadingCheckbox(li);
+  if (!box) return;
+  const next = box.nextSibling;
+  box.remove();
+  if (next?.nodeType === 3) {
+    next.nodeValue = next.nodeValue.replace(/^ /, "");
+    if (!next.nodeValue && li.childNodes.length > 1) next.remove();
+  }
+  if (!li.firstChild) li.appendChild(li.ownerDocument.createElement("br"));
+}
+
+function checklistItemHasBody(li, box) {
+  for (const child of li.childNodes) {
+    if (child === box || child.nodeType === 8) continue;
+    if (child.nodeType === 1 && child.nodeName === "INPUT" && child.type === "hidden") continue;
+    if (child.nodeType === 1 && child.nodeName === "BR") continue;
+    if (child.nodeType === 1 && child.querySelector?.("img")) return true;
+    if (child.nodeType === 1 && child.nodeName === "IMG") return true;
+    if (/\S/.test((child.textContent || "").replace(/\u200B/g, ""))) return true;
+  }
+  return false;
+}
+
+function caretAtChecklistItemStart(li, box, range) {
+  const probe = li.ownerDocument.createRange();
+  probe.selectNodeContents(li);
+  probe.setEnd(range.startContainer, range.startOffset);
+  const fragment = probe.cloneContents();
+  fragment.querySelectorAll?.('input[type="checkbox"], input[type="hidden"]').forEach(n => n.remove());
+  if (fragment.querySelector?.("img")) return false;
+  const before = (fragment.textContent || "").replace(/\u200B/g, "");
+  return before === "" || before === " ";
+}
+
+function placeCaretAfterCheckbox(squire, li, atEnd) {
+  const box = leadingCheckbox(li);
+  const doc = li.ownerDocument;
+  const range = doc.createRange();
+  if (!atEnd && box) {
+    const after = box.nextSibling;
+    if (after?.nodeType === 3) {
+      range.setStart(after, after.nodeValue.startsWith(" ") ? 1 : 0);
+    } else if (after) {
+      range.setStartBefore(after);
+    } else {
+      range.setStart(li, li.childNodes.length);
+    }
+  } else {
+    const edge = caretEdge(li, !atEnd);
+    range.setStart(edge, atEnd ? nodeLength(edge) : 0);
+  }
+  range.collapse(true);
+  restoreSquireSelection(squire, range);
 }
 
 function trapTab(event, container) {

@@ -35,6 +35,7 @@ var RichClayBundle = (() => {
     unlink: svg(`<path fill="currentColor" d="M198.63,57.37a32,32,0,0,0-45.19-.06L141.79,69.52a8,8,0,0,1-11.58-11l11.72-12.29a1.59,1.59,0,0,1,.13-.13,48,48,0,0,1,67.88,67.88,1.59,1.59,0,0,1-.13.13l-12.29,11.72a8,8,0,0,1-11-11.58l12.21-11.65A32,32,0,0,0,198.63,57.37ZM114.21,186.48l-11.65,12.21a32,32,0,0,1-45.25-45.25l12.21-11.65a8,8,0,0,0-11-11.58L46.19,141.93a1.59,1.59,0,0,0-.13.13,48,48,0,0,0,67.88,67.88,1.59,1.59,0,0,0,.13-.13l11.72-12.29a8,8,0,1,0-11.58-11ZM216,152H192a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16ZM40,104H64a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm120,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V192A8,8,0,0,0,160,184ZM96,72a8,8,0,0,0,8-8V40a8,8,0,0,0-16,0V64A8,8,0,0,0,96,72Z"/>`, "0 0 256 256"),
     ul: svg(`<path fill="currentColor" d="M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,64H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,116Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,180Z"/>`, "0 0 256 256"),
     ol: svg(`<path fill="currentColor" d="M224,128a8,8,0,0,1-8,8H104a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM104,72H216a8,8,0,0,0,0-16H104a8,8,0,0,0,0,16ZM216,184H104a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM43.58,55.16,48,52.94V104a8,8,0,0,0,16,0V40a8,8,0,0,0-11.58-7.16l-16,8a8,8,0,0,0,7.16,14.32ZM79.77,156.72a23.73,23.73,0,0,0-9.6-15.95,24.86,24.86,0,0,0-34.11,4.7,23.63,23.63,0,0,0-3.57,6.46,8,8,0,1,0,15,5.47,7.84,7.84,0,0,1,1.18-2.13,8.76,8.76,0,0,1,12-1.59A7.91,7.91,0,0,1,63.93,159a7.64,7.64,0,0,1-1.57,5.78,1,1,0,0,0-.08.11L33.59,203.21A8,8,0,0,0,40,216H72a8,8,0,0,0,0-16H56l19.08-25.53A23.47,23.47,0,0,0,79.77,156.72Z"/>`, "0 0 256 256"),
+    checklist: svg(`<path fill="currentColor" d="M224,128a8,8,0,0,1-8,8H128a8,8,0,0,1,0-16h88A8,8,0,0,1,224,128ZM128,72h88a8,8,0,0,0,0-16H128a8,8,0,0,0,0,16Zm88,112H128a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16ZM82.34,42.34,56,68.69,45.66,58.34A8,8,0,0,0,34.34,69.66l16,16a8,8,0,0,0,11.32,0l32-32A8,8,0,0,0,82.34,42.34Zm0,64L56,132.69,45.66,122.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32ZM72,172H44a12,12,0,0,0-12,12v28a12,12,0,0,0,12,12H72a12,12,0,0,0,12-12V184A12,12,0,0,0,72,172Zm-4,36H48V188H68Z"/>`, "0 0 256 256"),
     quote: svg(`<path fill="currentColor" d="M100,56H40A16,16,0,0,0,24,72v64a16,16,0,0,0,16,16h60v8a32,32,0,0,1-32,32,8,8,0,0,0,0,16,48.05,48.05,0,0,0,48-48V72A16,16,0,0,0,100,56Zm0,80H40V72h60ZM216,56H156a16,16,0,0,0-16,16v64a16,16,0,0,0,16,16h60v8a32,32,0,0,1-32,32,8,8,0,0,0,0,16,48.05,48.05,0,0,0,48-48V72A16,16,0,0,0,216,56Zm0,80H156V72h60Z"/>`, "0 0 256 256"),
     undo: svg(`<path fill="currentColor" d="M224,128a96,96,0,0,1-94.71,96H128A95.38,95.38,0,0,1,62.1,197.8a8,8,0,0,1,11-11.63A80,80,0,1,0,71.43,71.39a3.07,3.07,0,0,1-.26.25L44.59,96H72a8,8,0,0,1,0,16H24a8,8,0,0,1-8-8V56a8,8,0,0,1,16,0V85.8L60.25,60A96,96,0,0,1,224,128Z"/>`, "0 0 256 256"),
     redo: svg(`<path fill="currentColor" d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"/>`, "0 0 256 256"),
@@ -72,6 +73,7 @@ var RichClayBundle = (() => {
       "link",
       "unorderedList",
       "orderedList",
+      "checklist",
       "quote",
       "outdent",
       "indent",
@@ -157,7 +159,7 @@ var RichClayBundle = (() => {
       "Mod+Shift+8",
       "lists",
       (editor) => editor.toggleList("UL"),
-      (editor) => editor.pathHas("UL"),
+      (editor) => editor.pathHas("UL") && !editor.inChecklist(),
       blocksOnly
     ),
     toggle(
@@ -168,6 +170,16 @@ var RichClayBundle = (() => {
       "lists",
       (editor) => editor.toggleList("OL"),
       (editor) => editor.pathHas("OL"),
+      blocksOnly
+    ),
+    toggle(
+      "checklist",
+      "Checklist",
+      icons.checklist,
+      null,
+      "lists",
+      (editor) => editor.toggleChecklist(),
+      (editor) => editor.inChecklist(),
       blocksOnly
     ),
     toggle("quote", "Quote", icons.quote, null, "blocks", (editor) => {
@@ -580,6 +592,10 @@ var RichClayBundle = (() => {
     overflow: "auto",
     width: "0"
   };
+  var CHECKLIST_CONTAINMENT = {
+    listStyle: "none",
+    paddingLeft: "0"
+  };
   function shouldUseHyperclay(options = {}, win = window) {
     if (options.hyperclay === false) return false;
     if (options.hyperclay === true) return true;
@@ -676,6 +692,12 @@ var RichClayBundle = (() => {
           if (!pre.style[property]) pre.style[property] = value;
         });
         pre.removeAttribute("data-richclay-pre");
+      });
+      region.querySelectorAll("ul[data-richclay-checklist]").forEach((list) => {
+        Object.entries(CHECKLIST_CONTAINMENT).forEach(([property, value]) => {
+          if (!list.style[property]) list.style[property] = value;
+        });
+        list.removeAttribute("data-richclay-checklist");
       });
     });
     docElem.querySelectorAll?.("#squire-selection-start, #squire-selection-end").forEach((node) => node.remove());
@@ -1382,6 +1404,7 @@ var RichClayBundle = (() => {
       "h5",
       "h6",
       "i",
+      "input",
       "li",
       "ol",
       "p",
@@ -1394,11 +1417,11 @@ var RichClayBundle = (() => {
       "u",
       "ul"
     ],
-    ALLOWED_ATTR: ["aria-label", "href", "rel", "target", "title"],
+    ALLOWED_ATTR: ["aria-label", "checked", "data-checklist", "href", "rel", "target", "title", "type"],
     ALLOW_DATA_ATTR: false,
     ALLOW_ARIA_ATTR: true,
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input"],
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
     FORBID_ATTR: ["style", "srcset", "onerror", "onclick", "onload"]
   };
   function createSanitizer(config = {}, doc = document) {
@@ -1484,6 +1507,21 @@ var RichClayBundle = (() => {
         rel.add("noreferrer");
         link.setAttribute("rel", Array.from(rel).join(" "));
       }
+    });
+    root.querySelectorAll?.("input").forEach((input) => {
+      if ((input.getAttribute("type") || "").toLowerCase() !== "checkbox") {
+        input.remove();
+        return;
+      }
+      input.setAttribute("type", "checkbox");
+      const isChecked = input.hasAttribute("checked");
+      Array.from(input.attributes).forEach((attr) => {
+        if (attr.name !== "type" && attr.name !== "checked" && !attr.name.startsWith("aria-")) {
+          input.removeAttribute(attr.name);
+        }
+      });
+      if (isChecked) input.setAttribute("checked", "");
+      input.checked = isChecked;
     });
   }
   var INLINE_SANITIZE_EXTENSIONS = {
@@ -1987,6 +2025,7 @@ var RichClayBundle = (() => {
   var RichClay = class _RichClay {
     static presets = presets;
     static selector = RICHCLAY_SELECTOR;
+    static checklist = true;
     static hostHistory = false;
     static keepsOwnHistory = null;
     constructor(element, options = {}) {
@@ -2045,9 +2084,36 @@ var RichClayBundle = (() => {
         if (chrome && chrome !== this.element && this.element.contains(chrome) && chrome.contains(anchor)) return;
         event.preventDefault();
       };
+      this._onCheckboxMouseDown = (event) => {
+        if (!this.active || this.options.readOnly) return;
+        const box = this.ownedCheckbox(event.target);
+        if (box) event.preventDefault();
+      };
+      this._onCheckboxClick = (event) => {
+        if (!this.active || this.options.readOnly) return;
+        const box = this.ownedCheckbox(event.target);
+        if (!box) return;
+        const next = Boolean(box.checked);
+        this._squire?.saveUndoState?.();
+        if (typeof this._squire?.modifyDocument === "function") {
+          this._squire.modifyDocument(() => {
+            if (next) box.setAttribute("checked", "");
+            else box.removeAttribute("checked");
+            box.checked = next;
+          });
+          this._squire._docWasChanged?.();
+        } else {
+          if (next) box.setAttribute("checked", "");
+          else box.removeAttribute("checked");
+          box.checked = next;
+        }
+        this._squireHTML = this.element.innerHTML;
+        announce(this.liveRegion, next ? "Checked" : "Unchecked");
+      };
       this._onExternalWrite = () => {
         if (!this._squire) return;
         this._squire._mutation?.takeRecords();
+        this.syncCheckboxProperties();
         if (this.options.linkLabel) this._labelHref = this.element.querySelector("a[href]")?.getAttribute("href") ?? this._labelHref;
         this.resetSquireUndoBaseline();
         this.updatePlaceholder();
@@ -2331,8 +2397,10 @@ var RichClayBundle = (() => {
         }
       }
       this.bindSquire();
+      this.syncCheckboxProperties();
       if (this.options.singleLine) this.installSingleLineGuards();
       if (this.options.inline && !this.options.singleLine) this.installRootGuards();
+      if (!this.options.singleLine) this.installChecklistKeys();
       this.installAppleDeleteKeys();
       if (this.blocksStayOut()) this._squire._ensureBottomLine = () => {
       };
@@ -2391,6 +2459,7 @@ var RichClayBundle = (() => {
       this.updatePlaceholder();
       this.warnOnBlockInInlineRegion();
       this.element.querySelectorAll("pre").forEach((pre) => this._authoredPres.add(pre));
+      this._authoredChecklists = new WeakSet(this.element.querySelectorAll("ul[data-checklist]"));
       this._squireHTML = this.element.innerHTML;
       this.element.dispatchEvent(new this.window.CustomEvent("richclay:mount", { bubbles: true }));
     }
@@ -2418,6 +2487,7 @@ var RichClayBundle = (() => {
         this.setupEditorAttributes();
       }
       if (this._squire && this.element.innerHTML !== this._squireHTML) {
+        this.syncCheckboxProperties();
         this.resetSquireUndoBaseline();
       }
       return !intact;
@@ -2439,6 +2509,7 @@ var RichClayBundle = (() => {
           throw new Error("RichClay requires a retention-aware morph host to replay history containing editor-ui.");
         }
         root.innerHTML = html;
+        this.syncCheckboxProperties();
         return false;
       }
       morph(root, html, {
@@ -2447,6 +2518,7 @@ var RichClayBundle = (() => {
         scripts: { handle: false, merge: false },
         policy: "history"
       });
+      this.syncCheckboxProperties();
       return true;
     }
     getHTML() {
@@ -2502,6 +2574,10 @@ var RichClayBundle = (() => {
         this._onHistoryInput = null;
       }
       const doc = this.element.ownerDocument;
+      if (this._onChecklistKeydown) {
+        doc.removeEventListener("keydown", this._onChecklistKeydown, true);
+        this._onChecklistKeydown = null;
+      }
       if (this._onRootBeforeInput) {
         doc.removeEventListener("beforeinput", this._onRootBeforeInput, true);
         this._onRootBeforeInput = null;
@@ -2610,6 +2686,9 @@ var RichClayBundle = (() => {
       this.element.querySelectorAll("pre:not([data-richclay-pre])").forEach((pre) => {
         if (!this._authoredPres.has(pre)) pre.setAttribute("data-richclay-pre", "");
       });
+      this.element.querySelectorAll("ul[data-checklist]:not([data-richclay-checklist])").forEach((list) => {
+        if (!this._authoredChecklists?.has(list)) list.setAttribute("data-richclay-checklist", "");
+      });
       if (def.mutates !== false) {
         this.ensureRootIsEditable();
         this.anchorSelectionInBlock();
@@ -2686,8 +2765,182 @@ var RichClayBundle = (() => {
       return this._squire[addMethod]();
     }
     toggleList(tag) {
+      if (tag === "UL" && this.inChecklist()) {
+        return this.convertChecklistToList("UL");
+      }
+      if (tag === "OL" && this.inChecklist()) {
+        return this.convertChecklistToList("OL");
+      }
       if (this.pathHas(tag)) return this._squire.removeList();
       return tag === "UL" ? this._squire.makeUnorderedList() : this._squire.makeOrderedList();
+    }
+    ownedCheckbox(target) {
+      if (!target || target.nodeType !== 1 || target.nodeName !== "INPUT") return null;
+      if ((target.getAttribute("type") || "").toLowerCase() !== "checkbox") return null;
+      if (!this.element.contains(target)) return null;
+      const chrome = closestWithCapability(target, "history");
+      if (chrome && chrome !== this.element && this.element.contains(chrome) && chrome.contains(target)) return null;
+      return target;
+    }
+    syncCheckboxProperties() {
+      this.element.querySelectorAll?.('input[type="checkbox"]').forEach((box) => {
+        if (this.ownedCheckbox(box)) box.checked = box.hasAttribute("checked");
+      });
+    }
+    inChecklist() {
+      if (this.pathHas("ul[data-checklist]")) return true;
+      const range = getSquireSelection(this._squire);
+      if (!range) return false;
+      const li = matchAtBoundary(this.element, range.startContainer, range.startOffset, true, "li");
+      return Boolean(li && li.parentElement?.nodeName === "UL" && leadingCheckbox(li));
+    }
+    selectedListItems() {
+      const range = getSquireSelection(this._squire);
+      if (!range) return [];
+      const startLi = matchAtBoundary(this.element, range.startContainer, range.startOffset, true, "li");
+      const endLi = matchAtBoundary(this.element, range.endContainer, range.endOffset, false, "li");
+      if (!startLi) return [];
+      if (!endLi || startLi === endLi) return [startLi];
+      const all = Array.from(this.element.querySelectorAll("li"));
+      const a = all.indexOf(startLi);
+      const b = all.indexOf(endLi);
+      if (a < 0 || b < 0) return [startLi];
+      return all.slice(Math.min(a, b), Math.max(a, b) + 1);
+    }
+    convertChecklistToList(tag) {
+      const items = this.selectedListItems();
+      const lists = new Set(items.map((li) => li.parentElement).filter((el) => el?.nodeName === "UL"));
+      this._squire.saveUndoState();
+      items.forEach(stripLeadingCheckbox);
+      lists.forEach((ul) => {
+        if (!Array.from(ul.children).some((li) => li.nodeName === "LI" && leadingCheckbox(li))) {
+          ul.removeAttribute("data-checklist");
+          ul.removeAttribute("data-richclay-checklist");
+        }
+      });
+      if (tag === "OL") return this._squire.makeOrderedList();
+      this._squire._docWasChanged?.();
+      return this._squire.focus?.();
+    }
+    toggleChecklist() {
+      if (this.inChecklist()) {
+        const items2 = this.selectedListItems();
+        const lists2 = new Set(items2.map((li) => li.parentElement).filter((el) => el?.nodeName === "UL"));
+        items2.forEach(stripLeadingCheckbox);
+        lists2.forEach((ul) => {
+          if (!Array.from(ul.children).some((li) => li.nodeName === "LI" && leadingCheckbox(li))) {
+            ul.removeAttribute("data-checklist");
+            ul.removeAttribute("data-richclay-checklist");
+          }
+        });
+        return this._squire.removeList();
+      }
+      if (!this.pathHas("UL")) {
+        this._squire.makeUnorderedList();
+      }
+      const items = this.selectedListItems();
+      if (!items.length) return this.focus();
+      const doc = this.element.ownerDocument;
+      const lists = /* @__PURE__ */ new Set();
+      const decorate = () => {
+        items.forEach((li) => {
+          if (li.parentElement?.nodeName === "UL") lists.add(li.parentElement);
+          ensureLeadingCheckbox(li, doc);
+        });
+        lists.forEach((ul) => ul.setAttribute("data-checklist", ""));
+      };
+      if (typeof this._squire.modifyDocument === "function") {
+        this._squire.modifyDocument(decorate);
+        this._squire._docWasChanged?.();
+      } else {
+        decorate();
+      }
+      placeCaretAfterCheckbox(this._squire, items[items.length - 1], true);
+      return this.focus();
+    }
+    installChecklistKeys() {
+      const doc = this.element.ownerDocument;
+      this._onChecklistKeydown = (event) => {
+        if (!this.active || this.options.readOnly || event.defaultPrevented || event.isComposing) return;
+        if (!this.element.contains(event.target)) return;
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        if (event.key !== "Enter" && event.key !== "Backspace") return;
+        if (event.key === "Enter" && event.shiftKey) return;
+        const range = getSquireSelection(this._squire);
+        if (!range || !range.collapsed) return;
+        const li = matchAtBoundary(this.element, range.startContainer, range.startOffset, true, "li");
+        const box = li ? leadingCheckbox(li) : null;
+        if (!li || !box) return;
+        if (event.key === "Backspace") {
+          if (!caretAtChecklistItemStart(li, box, range)) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          this._squire.saveUndoState(range);
+          const ul = li.parentElement;
+          const apply = () => {
+            stripLeadingCheckbox(li);
+            if (ul?.nodeName === "UL" && !Array.from(ul.children).some((c) => c.nodeName === "LI" && leadingCheckbox(c))) {
+              ul.removeAttribute("data-checklist");
+              ul.removeAttribute("data-richclay-checklist");
+            }
+          };
+          if (typeof this._squire.modifyDocument === "function") this._squire.modifyDocument(apply);
+          else apply();
+          const edge = caretEdge(li, true);
+          const nextRange = doc.createRange();
+          nextRange.setStart(edge, 0);
+          nextRange.collapse(true);
+          restoreSquireSelection(this._squire, nextRange);
+          this.saveSelection();
+          this._squire._docWasChanged?.();
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!checklistItemHasBody(li, box)) {
+          this._squire.saveUndoState(range);
+          const ul = li.parentElement;
+          if (typeof this._squire.modifyDocument === "function") {
+            this._squire.modifyDocument(() => stripLeadingCheckbox(li));
+          } else {
+            stripLeadingCheckbox(li);
+          }
+          this._squire.decreaseListLevel?.();
+          if (ul?.isConnected && ul.nodeName === "UL" && !Array.from(ul.children).some((c) => c.nodeName === "LI" && leadingCheckbox(c))) {
+            ul.removeAttribute("data-checklist");
+            ul.removeAttribute("data-richclay-checklist");
+          }
+          this.saveSelection();
+          this._squire._docWasChanged?.();
+          return;
+        }
+        if (caretAtChecklistItemStart(li, box, range)) {
+          this._squire.saveUndoState(range);
+          const prevLi = doc.createElement("li");
+          const apply = () => {
+            ensureLeadingCheckbox(prevLi, doc);
+            prevLi.appendChild(doc.createElement("br"));
+            li.parentNode.insertBefore(prevLi, li);
+          };
+          if (typeof this._squire.modifyDocument === "function") this._squire.modifyDocument(apply);
+          else apply();
+          placeCaretAfterCheckbox(this._squire, li, false);
+          this.saveSelection();
+          this._squire._docWasChanged?.();
+          return;
+        }
+        this._squire.splitBlock?.(false, range);
+        const afterLi = li.nextElementSibling;
+        if (afterLi && afterLi.nodeName === "LI") {
+          const decorateNext = () => ensureLeadingCheckbox(afterLi, doc);
+          if (typeof this._squire.modifyDocument === "function") this._squire.modifyDocument(decorateNext);
+          else decorateNext();
+          placeCaretAfterCheckbox(this._squire, afterLi, false);
+          this.saveSelection();
+          this._squire._docWasChanged?.();
+        }
+      };
+      doc.addEventListener("keydown", this._onChecklistKeydown, true);
     }
     indent() {
       if (this.pathHas("UL") || this.pathHas("OL")) return this._squire.increaseListLevel();
@@ -2973,6 +3226,8 @@ var RichClayBundle = (() => {
       }
       this.element.addEventListener("focus", this._onFocus);
       this.element.addEventListener("blur", this._onBlur);
+      this.element.addEventListener("mousedown", this._onCheckboxMouseDown);
+      this.element.addEventListener("click", this._onCheckboxClick);
       this.element.addEventListener("click", this._onLinkActivation, true);
       this.element.addEventListener("auxclick", this._onLinkActivation, true);
       this.element.addEventListener("clay:external-write", this._onExternalWrite);
@@ -2981,6 +3236,8 @@ var RichClayBundle = (() => {
       removeRuntimeState(this.element, "destroy");
       this.element.removeEventListener("focus", this._onFocus);
       this.element.removeEventListener("blur", this._onBlur);
+      this.element.removeEventListener("mousedown", this._onCheckboxMouseDown);
+      this.element.removeEventListener("click", this._onCheckboxClick);
       this.element.removeEventListener("click", this._onLinkActivation, true);
       this.element.removeEventListener("auxclick", this._onLinkActivation, true);
       this.element.removeEventListener("clay:external-write", this._onExternalWrite);
@@ -3263,7 +3520,7 @@ var RichClayBundle = (() => {
     updatePlaceholder() {
       const view = createContentView(this.element, { capability: "history", inherit: false });
       const text = view.text().replace(/\u200B/g, "").trim();
-      const hasMeaningfulElement = view.root.querySelector("img, video, audio, iframe, table");
+      const hasMeaningfulElement = view.root.querySelector('img, video, audio, iframe, table, input[type="checkbox"]');
       const isEmpty = !text && !hasMeaningfulElement;
       this.element.classList.toggle("richclay-empty", isEmpty);
     }
@@ -3345,6 +3602,89 @@ var RichClayBundle = (() => {
   function normalizeModifier(modifier) {
     return modifier === "Cmd" ? "Meta" : modifier;
   }
+  function leadingCheckbox(li) {
+    for (const child of li.childNodes) {
+      if (child.nodeType === 8) continue;
+      if (child.nodeType === 3 && !/\S/.test(child.nodeValue.replace(/\u200B/g, ""))) continue;
+      if (child.nodeType === 1 && child.nodeName === "INPUT" && (child.getAttribute("type") || "").toLowerCase() === "checkbox") {
+        return child;
+      }
+      return null;
+    }
+    return null;
+  }
+  function ensureLeadingCheckbox(li, doc) {
+    let box = leadingCheckbox(li);
+    if (box) return box;
+    box = doc.createElement("input");
+    box.setAttribute("type", "checkbox");
+    const first = li.firstChild;
+    if (!first || first.nodeType === 1 && first.nodeName === "BR") {
+      li.insertBefore(box, first);
+      li.insertBefore(doc.createTextNode(" "), first);
+      return box;
+    }
+    if (first.nodeType === 3) {
+      if (!/^\s/.test(first.nodeValue)) first.nodeValue = ` ${first.nodeValue}`;
+      li.insertBefore(box, first);
+      return box;
+    }
+    li.insertBefore(doc.createTextNode(" "), first);
+    li.insertBefore(box, li.firstChild);
+    return box;
+  }
+  function stripLeadingCheckbox(li) {
+    const box = leadingCheckbox(li);
+    if (!box) return;
+    const next = box.nextSibling;
+    box.remove();
+    if (next?.nodeType === 3) {
+      next.nodeValue = next.nodeValue.replace(/^ /, "");
+      if (!next.nodeValue && li.childNodes.length > 1) next.remove();
+    }
+    if (!li.firstChild) li.appendChild(li.ownerDocument.createElement("br"));
+  }
+  function checklistItemHasBody(li, box) {
+    for (const child of li.childNodes) {
+      if (child === box || child.nodeType === 8) continue;
+      if (child.nodeType === 1 && child.nodeName === "INPUT" && child.type === "hidden") continue;
+      if (child.nodeType === 1 && child.nodeName === "BR") continue;
+      if (child.nodeType === 1 && child.querySelector?.("img")) return true;
+      if (child.nodeType === 1 && child.nodeName === "IMG") return true;
+      if (/\S/.test((child.textContent || "").replace(/\u200B/g, ""))) return true;
+    }
+    return false;
+  }
+  function caretAtChecklistItemStart(li, box, range) {
+    const probe = li.ownerDocument.createRange();
+    probe.selectNodeContents(li);
+    probe.setEnd(range.startContainer, range.startOffset);
+    const fragment = probe.cloneContents();
+    fragment.querySelectorAll?.('input[type="checkbox"], input[type="hidden"]').forEach((n) => n.remove());
+    if (fragment.querySelector?.("img")) return false;
+    const before = (fragment.textContent || "").replace(/\u200B/g, "");
+    return before === "" || before === " ";
+  }
+  function placeCaretAfterCheckbox(squire, li, atEnd) {
+    const box = leadingCheckbox(li);
+    const doc = li.ownerDocument;
+    const range = doc.createRange();
+    if (!atEnd && box) {
+      const after = box.nextSibling;
+      if (after?.nodeType === 3) {
+        range.setStart(after, after.nodeValue.startsWith(" ") ? 1 : 0);
+      } else if (after) {
+        range.setStartBefore(after);
+      } else {
+        range.setStart(li, li.childNodes.length);
+      }
+    } else {
+      const edge = caretEdge(li, !atEnd);
+      range.setStart(edge, atEnd ? nodeLength(edge) : 0);
+    }
+    range.collapse(true);
+    restoreSquireSelection(squire, range);
+  }
   function trapTab(event, container) {
     const focusables = container.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -3363,7 +3703,7 @@ var RichClayBundle = (() => {
   }
 
   // richclay.css
-  var richclay_default = ":root {\n  --richclay-surface: #ffffff;\n  --richclay-surface-alt: #f6f7f9;\n  --richclay-text: #0b0e14;\n  --richclay-muted: #667085;\n  --richclay-border: #c9ced8;\n  --richclay-accent: #0f766e;\n  --richclay-accent-ink: #ffffff;\n  --richclay-focus: #2563eb;\n  --richclay-danger: #b42318;\n  --richclay-radius: 6px;\n  --richclay-control-size: 34px;\n  --richclay-shadow: 0 10px 24px rgb(15 23 42 / 0.16);\n  --richclay-dialog-arrow: 28px;\n}\n\n@media (prefers-color-scheme: dark) {\n  :root {\n    --richclay-surface: #16181d;\n    --richclay-surface-alt: #22252c;\n    --richclay-text: #ffffff;\n    --richclay-muted: #a3aab8;\n    --richclay-border: #4a5260;\n    --richclay-accent: #2dd4bf;\n    --richclay-accent-ink: #05201d;\n    --richclay-focus: #93c5fd;\n    --richclay-shadow: 0 12px 28px rgb(0 0 0 / 0.35);\n  }\n}\n\n.richclay-toolbar {\n  align-items: center;\n  background: var(--richclay-surface-alt);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  display: flex;\n  flex-wrap: wrap;\n  gap: 2px;\n  margin-block: 0 6px;\n  padding: 4px;\n}\n\n/* Seamless card: in the default layout the toolbar sits directly above the\n   editor. Fuse them into a single bordered card with one divider \u2014 the\n   toolbar's bottom border \u2014 instead of two stacked, separated boxes. */\n.richclay-toolbar:has(+ .richclay-editor) {\n  margin-block-end: 0;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n}\n\n.richclay-toolbar + .richclay-editor {\n  border-top: 0;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n\n/* In a fused card, draw the focus ring inside the body so it never crosses\n   the toolbar divider. */\n.richclay-toolbar + .richclay-editor:focus-visible {\n  outline-offset: -3px;\n}\n\n.richclay-button {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 5px;\n  color: currentColor;\n  display: inline-flex;\n  height: var(--richclay-control-size);\n  justify-content: center;\n  margin: 0;\n  min-width: var(--richclay-control-size);\n  padding: 0;\n  position: relative;\n}\n\n.richclay-button:hover,\n.richclay-button[aria-expanded=\"true\"],\n.richclay-menu-item:hover {\n  background: var(--richclay-surface);\n  border-color: var(--richclay-border);\n}\n\n.richclay-button.is-active,\n.richclay-button[aria-pressed=\"true\"],\n.richclay-menu-item.is-active {\n  background: rgb(0 0 0 / 0.13);\n  border-color: rgb(0 0 0 / 0.22);\n  color: var(--richclay-text);\n  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.26);\n}\n\n.richclay-button:focus-visible,\n.richclay-menu-item:focus-visible,\n.richclay-editor:focus-visible,\n.richclay-input:focus-visible,\n.richclay-primary:focus-visible,\n.richclay-secondary:focus-visible {\n  outline: 3px solid var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-button:disabled {\n  color: var(--richclay-muted);\n  cursor: not-allowed;\n  opacity: 0.55;\n}\n\n.richclay-separator {\n  align-self: stretch;\n  background: var(--richclay-border);\n  display: inline-block;\n  margin: 5px 4px;\n  width: 1px;\n}\n\n.richclay-menu-wrap {\n  display: inline-flex;\n  position: relative;\n}\n\n.richclay-menu {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 2px;\n  inset-block-start: calc(100% + 4px);\n  inset-inline-start: 0;\n  min-width: 160px;\n  padding: 4px;\n  position: absolute;\n  z-index: 1000;\n}\n\n.richclay-menu[hidden] {\n  display: none;\n}\n\n.richclay-menu-item {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 4px;\n  color: inherit;\n  display: flex;\n  font: inherit;\n  gap: 8px;\n  min-height: 32px;\n  padding: 5px 9px;\n  text-align: start;\n}\n\n.richclay-editor {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  min-height: 9rem;\n  /* Break a long unbreakable string (e.g. a bare URL) in prose rather than let\n     it widen the editor. `anywhere` also lowers min-content, so the editor can't\n     grow even as a flex/grid item. Inert on the code <pre> (white-space: pre). */\n  overflow-wrap: anywhere;\n  padding: 12px;\n  position: relative;\n}\n\n.richclay-editor.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  inset-block-start: 12px;\n  inset-inline-start: 12px;\n  pointer-events: none;\n  position: absolute;\n}\n\n.richclay-editor p,\n.richclay-editor h1,\n.richclay-editor h2,\n.richclay-editor h3,\n.richclay-editor h4,\n.richclay-editor h5,\n.richclay-editor h6,\n.richclay-editor blockquote,\n.richclay-editor pre,\n.richclay-editor ul,\n.richclay-editor ol {\n  margin-block: 0 0.75em;\n}\n\n.richclay-editor > :last-child {\n  margin-block-end: 0;\n}\n\n/* Inline editors ([editable]) inherit the page's own styling. richclay adds\n   only a caret, a discoverability outline, and empty-state affordances. */\n.richclay-inline {\n  caret-color: currentColor;\n}\n\n.richclay-inline:hover {\n  outline: 1px dashed var(--richclay-border);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-focused,\n.richclay-inline:focus-visible {\n  outline: 2px dashed var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-empty {\n  min-height: 1em;\n  min-width: 1ch;\n}\n\n.richclay-inline.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  pointer-events: none;\n}\n\n/* Floating toolbar shell for inline editors. Fixed-position and body-mounted:\n   fixed elements never create scrollbars, and body mounting avoids transformed\n   ancestors silently turning fixed into ancestor-relative. */\n.richclay-float {\n  left: 0;\n  position: fixed;\n  top: 0;\n  will-change: transform;\n  z-index: 99999;\n}\n\n.richclay-float .richclay-toolbar {\n  box-shadow: var(--richclay-shadow);\n  margin-block: 0;\n}\n\n/* Compact vertical rail for narrow margins. */\n.richclay-float-rail .richclay-toolbar {\n  --richclay-control-size: 28px;\n  flex-direction: column;\n  flex-wrap: nowrap;\n}\n\n.richclay-float-rail .richclay-toolbar svg {\n  height: 15px;\n  width: 15px;\n}\n\n.richclay-float-rail .richclay-separator {\n  align-self: stretch;\n  height: 1px;\n  margin: 4px 5px;\n  width: auto;\n}\n\n.richclay-float-rail .richclay-menu {\n  inset-block-start: 0;\n  inset-inline-start: calc(100% + 4px);\n}\n\n.richclay-editor blockquote {\n  border-inline-start: 3px solid var(--richclay-border);\n  color: var(--richclay-muted);\n  margin-inline: 0;\n  padding-inline-start: 12px;\n}\n\n/* Code blocks scroll horizontally inside the editor instead of widening it.\n   `width: 0; min-width: 100%` zeroes the pre's intrinsic-width contribution so a\n   long unbreakable line can't push an intrinsically-sized ancestor (flex/grid\n   item, inline-block, table cell) wider, while still filling the editor and\n   scrolling its own overflow. box-sizing keeps padding inside that 100%.\n   Containment applies to inline editors too: `white-space: pre` never wraps, so\n   without it one code block runs off the side of the page. Only the decoration\n   below stays card-scoped, since inline mode keeps the page's own typography. */\n.richclay-editor pre,\n.richclay-inline pre {\n  box-sizing: border-box;\n  min-width: 100%;\n  overflow: auto;\n  width: 0;\n}\n\n.richclay-editor pre {\n  background: var(--richclay-surface-alt);\n  border-radius: 4px;\n  padding: 10px;\n}\n\n.richclay-dialog {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 10px;\n  box-sizing: border-box;\n  width: min(420px, calc(100vw - 16px));\n  z-index: 99999;\n  padding: 12px;\n}\n\n.richclay-dialog-title {\n  font-weight: 650;\n}\n\n.richclay-dialog.richclay-link-popover {\n  align-items: center;\n  display: flex;\n  gap: 6px;\n  max-width: min(420px, calc(100vw - 16px));\n  padding: 6px;\n  width: auto;\n}\n\n.richclay-link-address {\n  color: inherit;\n  font-size: 0.875rem;\n  max-width: 260px;\n  overflow: hidden;\n  padding: 0 6px;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.richclay-link-popover .richclay-secondary {\n  min-height: 30px;\n  padding: 3px 9px;\n}\n\n.richclay-field {\n  display: grid;\n  gap: 4px;\n}\n\n.richclay-field span {\n  color: var(--richclay-muted);\n  font-size: 0.875rem;\n}\n\n.richclay-input {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  color: var(--richclay-text);\n  font: inherit;\n  min-height: 36px;\n  padding: 6px 8px;\n}\n\n.richclay-dialog-actions {\n  display: flex;\n  gap: 8px;\n  justify-content: flex-end;\n}\n\n.richclay-dialog-actions [data-richclay-remove-link] {\n  margin-inline-end: auto;\n}\n\n.richclay-primary,\n.richclay-secondary {\n  appearance: none;\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  font: inherit;\n  min-height: 34px;\n  padding: 5px 10px;\n}\n\n.richclay-primary {\n  background: var(--richclay-accent);\n  border-color: var(--richclay-accent);\n  color: var(--richclay-accent-ink);\n}\n\n.richclay-secondary {\n  background: var(--richclay-surface-alt);\n  color: var(--richclay-text);\n}\n\n.richclay-sr-only {\n  border: 0;\n  clip: rect(0 0 0 0);\n  clip-path: inset(50%);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  white-space: nowrap;\n  width: 1px;\n}\n\n@media (forced-colors: active) {\n  .richclay-toolbar,\n  .richclay-editor,\n  .richclay-menu,\n  .richclay-dialog,\n  .richclay-input {\n    border-color: CanvasText;\n  }\n\n  .richclay-button.is-active,\n  .richclay-button[aria-pressed=\"true\"],\n  .richclay-menu-item.is-active,\n  .richclay-primary {\n    background: Highlight;\n    color: HighlightText;\n  }\n\n  .richclay-button:focus-visible,\n  .richclay-menu-item:focus-visible,\n  .richclay-editor:focus-visible,\n  .richclay-input:focus-visible {\n    outline-color: Highlight;\n  }\n}\n";
+  var richclay_default = ':root {\n  --richclay-surface: #ffffff;\n  --richclay-surface-alt: #f6f7f9;\n  --richclay-text: #0b0e14;\n  --richclay-muted: #667085;\n  --richclay-border: #c9ced8;\n  --richclay-accent: #0f766e;\n  --richclay-accent-ink: #ffffff;\n  --richclay-focus: #2563eb;\n  --richclay-danger: #b42318;\n  --richclay-radius: 6px;\n  --richclay-control-size: 34px;\n  --richclay-shadow: 0 10px 24px rgb(15 23 42 / 0.16);\n  --richclay-dialog-arrow: 28px;\n}\n\n@media (prefers-color-scheme: dark) {\n  :root {\n    --richclay-surface: #16181d;\n    --richclay-surface-alt: #22252c;\n    --richclay-text: #ffffff;\n    --richclay-muted: #a3aab8;\n    --richclay-border: #4a5260;\n    --richclay-accent: #2dd4bf;\n    --richclay-accent-ink: #05201d;\n    --richclay-focus: #93c5fd;\n    --richclay-shadow: 0 12px 28px rgb(0 0 0 / 0.35);\n  }\n}\n\n.richclay-toolbar {\n  align-items: center;\n  background: var(--richclay-surface-alt);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  display: flex;\n  flex-wrap: wrap;\n  gap: 2px;\n  margin-block: 0 6px;\n  padding: 4px;\n}\n\n/* Seamless card: in the default layout the toolbar sits directly above the\n   editor. Fuse them into a single bordered card with one divider \u2014 the\n   toolbar\'s bottom border \u2014 instead of two stacked, separated boxes. */\n.richclay-toolbar:has(+ .richclay-editor) {\n  margin-block-end: 0;\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0;\n}\n\n.richclay-toolbar + .richclay-editor {\n  border-top: 0;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n\n/* In a fused card, draw the focus ring inside the body so it never crosses\n   the toolbar divider. */\n.richclay-toolbar + .richclay-editor:focus-visible {\n  outline-offset: -3px;\n}\n\n.richclay-button {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 5px;\n  color: currentColor;\n  display: inline-flex;\n  height: var(--richclay-control-size);\n  justify-content: center;\n  margin: 0;\n  min-width: var(--richclay-control-size);\n  padding: 0;\n  position: relative;\n}\n\n.richclay-button:hover,\n.richclay-button[aria-expanded="true"],\n.richclay-menu-item:hover {\n  background: var(--richclay-surface);\n  border-color: var(--richclay-border);\n}\n\n.richclay-button.is-active,\n.richclay-button[aria-pressed="true"],\n.richclay-menu-item.is-active {\n  background: rgb(0 0 0 / 0.13);\n  border-color: rgb(0 0 0 / 0.22);\n  color: var(--richclay-text);\n  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.26);\n}\n\n.richclay-button:focus-visible,\n.richclay-menu-item:focus-visible,\n.richclay-editor:focus-visible,\n.richclay-input:focus-visible,\n.richclay-primary:focus-visible,\n.richclay-secondary:focus-visible {\n  outline: 3px solid var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-button:disabled {\n  color: var(--richclay-muted);\n  cursor: not-allowed;\n  opacity: 0.55;\n}\n\n.richclay-separator {\n  align-self: stretch;\n  background: var(--richclay-border);\n  display: inline-block;\n  margin: 5px 4px;\n  width: 1px;\n}\n\n.richclay-menu-wrap {\n  display: inline-flex;\n  position: relative;\n}\n\n.richclay-menu {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 2px;\n  inset-block-start: calc(100% + 4px);\n  inset-inline-start: 0;\n  min-width: 160px;\n  padding: 4px;\n  position: absolute;\n  z-index: 1000;\n}\n\n.richclay-menu[hidden] {\n  display: none;\n}\n\n.richclay-menu-item {\n  align-items: center;\n  appearance: none;\n  background: transparent;\n  border: 1px solid transparent;\n  border-radius: 4px;\n  color: inherit;\n  display: flex;\n  font: inherit;\n  gap: 8px;\n  min-height: 32px;\n  padding: 5px 9px;\n  text-align: start;\n}\n\n.richclay-editor {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  color: var(--richclay-text);\n  min-height: 9rem;\n  /* Break a long unbreakable string (e.g. a bare URL) in prose rather than let\n     it widen the editor. `anywhere` also lowers min-content, so the editor can\'t\n     grow even as a flex/grid item. Inert on the code <pre> (white-space: pre). */\n  overflow-wrap: anywhere;\n  padding: 12px;\n  position: relative;\n}\n\n.richclay-editor.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  inset-block-start: 12px;\n  inset-inline-start: 12px;\n  pointer-events: none;\n  position: absolute;\n}\n\n.richclay-editor p,\n.richclay-editor h1,\n.richclay-editor h2,\n.richclay-editor h3,\n.richclay-editor h4,\n.richclay-editor h5,\n.richclay-editor h6,\n.richclay-editor blockquote,\n.richclay-editor pre,\n.richclay-editor ul,\n.richclay-editor ol {\n  margin-block: 0 0.75em;\n}\n\n.richclay-editor ul[data-checklist],\n.richclay-inline ul[data-checklist] {\n  list-style: none;\n  padding-inline-start: 0;\n}\n\n.richclay-editor li > input[type="checkbox"],\n.richclay-inline li > input[type="checkbox"] {\n  accent-color: var(--richclay-accent);\n  cursor: pointer;\n  margin-inline: 0 0.45em;\n  vertical-align: -0.1em;\n}\n\n.richclay-editor > :last-child {\n  margin-block-end: 0;\n}\n\n/* Inline editors ([editable]) inherit the page\'s own styling. richclay adds\n   only a caret, a discoverability outline, and empty-state affordances. */\n.richclay-inline {\n  caret-color: currentColor;\n}\n\n.richclay-inline:hover {\n  outline: 1px dashed var(--richclay-border);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-focused,\n.richclay-inline:focus-visible {\n  outline: 2px dashed var(--richclay-focus);\n  outline-offset: 2px;\n}\n\n.richclay-inline.richclay-empty {\n  min-height: 1em;\n  min-width: 1ch;\n}\n\n.richclay-inline.richclay-empty::before {\n  color: var(--richclay-muted);\n  content: attr(data-richclay-placeholder);\n  pointer-events: none;\n}\n\n/* Floating toolbar shell for inline editors. Fixed-position and body-mounted:\n   fixed elements never create scrollbars, and body mounting avoids transformed\n   ancestors silently turning fixed into ancestor-relative. */\n.richclay-float {\n  left: 0;\n  position: fixed;\n  top: 0;\n  will-change: transform;\n  z-index: 99999;\n}\n\n.richclay-float .richclay-toolbar {\n  box-shadow: var(--richclay-shadow);\n  margin-block: 0;\n}\n\n/* Compact vertical rail for narrow margins. */\n.richclay-float-rail .richclay-toolbar {\n  --richclay-control-size: 28px;\n  flex-direction: column;\n  flex-wrap: nowrap;\n}\n\n.richclay-float-rail .richclay-toolbar svg {\n  height: 15px;\n  width: 15px;\n}\n\n.richclay-float-rail .richclay-separator {\n  align-self: stretch;\n  height: 1px;\n  margin: 4px 5px;\n  width: auto;\n}\n\n.richclay-float-rail .richclay-menu {\n  inset-block-start: 0;\n  inset-inline-start: calc(100% + 4px);\n}\n\n.richclay-editor blockquote {\n  border-inline-start: 3px solid var(--richclay-border);\n  color: var(--richclay-muted);\n  margin-inline: 0;\n  padding-inline-start: 12px;\n}\n\n/* Code blocks scroll horizontally inside the editor instead of widening it.\n   `width: 0; min-width: 100%` zeroes the pre\'s intrinsic-width contribution so a\n   long unbreakable line can\'t push an intrinsically-sized ancestor (flex/grid\n   item, inline-block, table cell) wider, while still filling the editor and\n   scrolling its own overflow. box-sizing keeps padding inside that 100%.\n   Containment applies to inline editors too: `white-space: pre` never wraps, so\n   without it one code block runs off the side of the page. Only the decoration\n   below stays card-scoped, since inline mode keeps the page\'s own typography. */\n.richclay-editor pre,\n.richclay-inline pre {\n  box-sizing: border-box;\n  min-width: 100%;\n  overflow: auto;\n  width: 0;\n}\n\n.richclay-editor pre {\n  background: var(--richclay-surface-alt);\n  border-radius: 4px;\n  padding: 10px;\n}\n\n.richclay-dialog {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: var(--richclay-radius);\n  box-shadow: var(--richclay-shadow);\n  color: var(--richclay-text);\n  display: grid;\n  gap: 10px;\n  box-sizing: border-box;\n  width: min(420px, calc(100vw - 16px));\n  z-index: 99999;\n  padding: 12px;\n}\n\n.richclay-dialog-title {\n  font-weight: 650;\n}\n\n.richclay-dialog.richclay-link-popover {\n  align-items: center;\n  display: flex;\n  gap: 6px;\n  max-width: min(420px, calc(100vw - 16px));\n  padding: 6px;\n  width: auto;\n}\n\n.richclay-link-address {\n  color: inherit;\n  font-size: 0.875rem;\n  max-width: 260px;\n  overflow: hidden;\n  padding: 0 6px;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.richclay-link-popover .richclay-secondary {\n  min-height: 30px;\n  padding: 3px 9px;\n}\n\n.richclay-field {\n  display: grid;\n  gap: 4px;\n}\n\n.richclay-field span {\n  color: var(--richclay-muted);\n  font-size: 0.875rem;\n}\n\n.richclay-input {\n  background: var(--richclay-surface);\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  color: var(--richclay-text);\n  font: inherit;\n  min-height: 36px;\n  padding: 6px 8px;\n}\n\n.richclay-dialog-actions {\n  display: flex;\n  gap: 8px;\n  justify-content: flex-end;\n}\n\n.richclay-dialog-actions [data-richclay-remove-link] {\n  margin-inline-end: auto;\n}\n\n.richclay-primary,\n.richclay-secondary {\n  appearance: none;\n  border: 1px solid var(--richclay-border);\n  border-radius: 4px;\n  font: inherit;\n  min-height: 34px;\n  padding: 5px 10px;\n}\n\n.richclay-primary {\n  background: var(--richclay-accent);\n  border-color: var(--richclay-accent);\n  color: var(--richclay-accent-ink);\n}\n\n.richclay-secondary {\n  background: var(--richclay-surface-alt);\n  color: var(--richclay-text);\n}\n\n.richclay-sr-only {\n  border: 0;\n  clip: rect(0 0 0 0);\n  clip-path: inset(50%);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  white-space: nowrap;\n  width: 1px;\n}\n\n@media (forced-colors: active) {\n  .richclay-toolbar,\n  .richclay-editor,\n  .richclay-menu,\n  .richclay-dialog,\n  .richclay-input {\n    border-color: CanvasText;\n  }\n\n  .richclay-button.is-active,\n  .richclay-button[aria-pressed="true"],\n  .richclay-menu-item.is-active,\n  .richclay-primary {\n    background: Highlight;\n    color: HighlightText;\n  }\n\n  .richclay-button:focus-visible,\n  .richclay-menu-item:focus-visible,\n  .richclay-editor:focus-visible,\n  .richclay-input:focus-visible {\n    outline-color: Highlight;\n  }\n}\n';
 
   // src/browser-global.js
   setRichClayStyles(richclay_default);

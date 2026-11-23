@@ -14,6 +14,7 @@ export const DEFAULT_SANITIZE_CONFIG = {
     "h5",
     "h6",
     "i",
+    "input",
     "li",
     "ol",
     "p",
@@ -26,12 +27,12 @@ export const DEFAULT_SANITIZE_CONFIG = {
     "u",
     "ul"
   ],
-  ALLOWED_ATTR: ["aria-label", "href", "rel", "target", "title"],
+  ALLOWED_ATTR: ["aria-label", "checked", "data-checklist", "href", "rel", "target", "title", "type"],
   ALLOW_DATA_ATTR: false,
   ALLOW_ARIA_ATTR: true,
   ALLOWED_URI_REGEXP:
     /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-  FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input"],
+  FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
   FORBID_ATTR: ["style", "srcset", "onerror", "onclick", "onload"]
 };
 
@@ -143,6 +144,21 @@ function normalizeLinks(root) {
       rel.add("noreferrer");
       link.setAttribute("rel", Array.from(rel).join(" "));
     }
+  });
+  root.querySelectorAll?.("input").forEach(input => {
+    if ((input.getAttribute("type") || "").toLowerCase() !== "checkbox") {
+      input.remove();
+      return;
+    }
+    input.setAttribute("type", "checkbox");
+    const isChecked = input.hasAttribute("checked");
+    Array.from(input.attributes).forEach(attr => {
+      if (attr.name !== "type" && attr.name !== "checked" && !attr.name.startsWith("aria-")) {
+        input.removeAttribute(attr.name);
+      }
+    });
+    if (isChecked) input.setAttribute("checked", "");
+    input.checked = isChecked;
   });
 }
 

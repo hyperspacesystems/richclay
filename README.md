@@ -199,7 +199,7 @@ Toolbar arrays are the extension surface. Include built-in ids, omit ids to remo
 
 Keyboard shortcuts come from the button registry plus your toolbar definitions, so they stay active even with `toolbar: false`. Unregister a button to remove its shortcut.
 
-Built-in control ids are `blockMenu`, `bold`, `italic`, `underline`, `strikethrough`, `code`, `link`, `unlink`, `unorderedList`, `orderedList`, `quote`, `outdent`, `indent`, `undo`, `redo`, and `clearFormatting`. The `unlink` id stays registered for explicit custom toolbars even though no preset lists it.
+Built-in control ids are `blockMenu`, `bold`, `italic`, `underline`, `strikethrough`, `code`, `link`, `unlink`, `unorderedList`, `orderedList`, `checklist`, `quote`, `outdent`, `indent`, `undo`, `redo`, and `clearFormatting`. The `unlink` id stays registered for explicit custom toolbars even though no preset lists it.
 
 ```js
 RichClay.registerButton({

@@ -120,3 +120,29 @@ test("sanitizeToDOMFragment returns a cleaned document fragment for the paste pa
   assert.equal(fragment.querySelector("p") !== null, true);
   assert.equal(fragment.querySelector("script"), null);
 });
+
+test("sanitizeHTML keeps checklist checkboxes and checked state while stripping non-checkbox inputs and extra attributes", () => {
+  setupDom();
+  const clean = sanitizeHTML(`
+    <ul data-checklist>
+      <li><input type="checkbox" checked name="evil" value="x" onclick="alert(1)" aria-label="Done"> Tent</li>
+      <li><input type="checkbox"> Stove</li>
+      <li><input type="text" value="nope"><input type="hidden" id="sneak"><input> Map</li>
+    </ul>
+  `);
+
+  const probe = document.createElement("div");
+  probe.innerHTML = clean;
+  assert.equal(probe.querySelector("ul")?.hasAttribute("data-checklist"), true);
+  const boxes = probe.querySelectorAll("input");
+  assert.equal(boxes.length, 2);
+  assert.equal(boxes[0].getAttribute("type"), "checkbox");
+  assert.equal(boxes[0].hasAttribute("checked"), true);
+  assert.equal(boxes[0].checked, true);
+  assert.equal(boxes[0].hasAttribute("name"), false);
+  assert.equal(boxes[0].hasAttribute("value"), false);
+  assert.equal(boxes[0].hasAttribute("onclick"), false);
+  assert.equal(boxes[0].getAttribute("aria-label"), "Done");
+  assert.equal(boxes[1].hasAttribute("checked"), false);
+  assert.equal(boxes[1].checked, false);
+});

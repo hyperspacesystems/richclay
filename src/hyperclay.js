@@ -108,6 +108,11 @@ const PRE_CONTAINMENT = {
   width: "0"
 };
 
+const CHECKLIST_CONTAINMENT = {
+  listStyle: "none",
+  paddingLeft: "0"
+};
+
 export function shouldUseHyperclay(options = {}, win = window) {
   if (options.hyperclay === false) return false;
   if (options.hyperclay === true) return true;
@@ -251,6 +256,13 @@ export function stripRichClayFromClone(docElem) {
         if (!pre.style[property]) pre.style[property] = value;
       });
       pre.removeAttribute("data-richclay-pre");
+    });
+
+    region.querySelectorAll("ul[data-richclay-checklist]").forEach(list => {
+      Object.entries(CHECKLIST_CONTAINMENT).forEach(([property, value]) => {
+        if (!list.style[property]) list.style[property] = value;
+      });
+      list.removeAttribute("data-richclay-checklist");
     });
   });
 

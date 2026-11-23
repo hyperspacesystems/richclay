@@ -678,3 +678,69 @@ test("<div editable> still gets the bare-root wrap and the block controls", () =
   silenceWarnings(() => editor.ensureRootIsEditable());
   assert.equal(element.innerHTML, "<div>Hello</div>");
 });
+
+test("checklist control creates clickable checkboxes whose checked attribute saves, undoes, splits on Enter, and strips cleanly on Backspace", () => {
+  const { element, editor } = mountMarkup("<div editable><p>Tent</p></div>");
+  caretAt(editor, element.querySelector("p").firstChild, 4);
+
+  editor.runControl(editor.registry.get("checklist"));
+
+  const list = element.querySelector("ul[data-checklist]");
+  assert.equal(Boolean(list), true);
+  assert.equal(editor.inChecklist(), true);
+  const firstBox = list.querySelector('li > input[type="checkbox"]');
+  assert.equal(Boolean(firstBox), true);
+  assert.equal(firstBox.checked, false);
+  assert.equal(firstBox.hasAttribute("checked"), false);
+
+  // Clicking toggles both .checked and the durable checked="" attribute for savedContent, and undoes cleanly.
+  firstBox.click();
+  assert.equal(firstBox.checked, true);
+  assert.equal(firstBox.hasAttribute("checked"), true);
+  assert.match(RichClay.savedContent(element), /<input type="checkbox" checked="">/);
+
+  editor.history("undo");
+  const undoneBox = element.querySelector('li > input[type="checkbox"]');
+  assert.equal(undoneBox.checked, false);
+  assert.equal(undoneBox.hasAttribute("checked"), false);
+
+  undoneBox.click();
+  assert.equal(undoneBox.checked, true);
+
+  // Pressing Enter at the end of a checked item creates a fresh unchecked checklist item below it.
+  const firstLi = element.querySelector("li");
+  const textNode = Array.from(firstLi.childNodes).find(n => n.nodeType === 3);
+  caretAt(editor, textNode, textNode.nodeValue.length);
+  press(element, "Enter");
+
+  const items = element.querySelectorAll("li");
+  assert.equal(items.length, 2);
+  assert.equal(items[0].querySelector('input[type="checkbox"]').hasAttribute("checked"), true);
+  const secondBox = items[1].querySelector('input[type="checkbox"]');
+  assert.equal(Boolean(secondBox), true);
+  assert.equal(secondBox.hasAttribute("checked"), false);
+
+  // Pressing Backspace right after the second item's checkbox removes the checkbox instead of merging a duplicate <input> into item 1.
+  press(element, "Backspace");
+  assert.equal(items[1].querySelector('input[type="checkbox"]'), null);
+  assert.equal(items[0].querySelectorAll('input[type="checkbox"]').length, 1);
+
+  // Author checklists without data-richclay-checklist stay byte-identical on open; toolbar-created checklists carry list-style containment on save.
+  const saved = savedRegion(element);
+  assert.equal(saved.querySelector("ul").style.listStyle, "none");
+  assert.equal(saved.querySelector("ul").hasAttribute("data-richclay-checklist"), false);
+});
+
+test("authored <ul data-checklist> stays byte-identical on open and toggles checkboxes on click", () => {
+  const authored = '\n  <ul data-checklist="">\n    <li><input type="checkbox" checked=""> Tent</li>\n    <li><input type="checkbox"> Stove</li>\n  </ul>\n';
+  const { element } = mountMarkup(`<div editable>${authored}</div>`);
+  assert.equal(savedRegion(element).innerHTML, authored);
+
+  const boxes = element.querySelectorAll('input[type="checkbox"]');
+  assert.equal(boxes[0].checked, true);
+  assert.equal(boxes[1].checked, false);
+  boxes[1].click();
+  assert.equal(boxes[1].checked, true);
+  assert.equal(boxes[1].hasAttribute("checked"), true);
+  assert.equal(savedRegion(element).querySelector("ul").hasAttribute("style"), false);
+});
