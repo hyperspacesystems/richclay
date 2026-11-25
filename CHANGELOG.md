@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-25
+
+### Added
+- Checklist items can be checked and unchecked by clicking their checkbox in the document.
+
 ## [0.9.0] - 2026-11-14
 
 ### Added
