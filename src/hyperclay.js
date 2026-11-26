@@ -1,6 +1,8 @@
 import { flattenBlocks, hasBlockDescendant } from "./normalize.js";
 
-export const RICHCLAY_SELECTOR = "[data-richclay], [richclay], [editable], [clay-editable]";
+// `editable="plain"` is ClayJS core's plain-text field, not rich text: it gets no editor.
+export const RICHCLAY_SELECTOR =
+  '[data-richclay], [richclay], [editable]:not([editable~="plain"]), [clay-editable]:not([clay-editable~="plain"])';
 
 // The names that say "richclay" and nothing else. `editable` is deliberately not
 // among them: it is the friendly spelling, and it is also a name other people use.

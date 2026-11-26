@@ -340,6 +340,16 @@ test("a custom element carrying a bare editable attribute is left alone", () => 
   assert.equal(custom.getAttribute("contenteditable"), null);
 });
 
+test("editable=plain is a plain-text field and gets no rich text editor", () => {
+  setupDom('<!doctype html><html><body><h1 editable="plain">title</h1><my-note clay-editable="plain">note</my-note><div editable><p>rich</p></div></body></html>');
+  const editors = RichClay.init(undefined, { Squire: FakeSquire });
+
+  assert.equal(editors.length, 1);
+  assert.equal(editors[0].element, document.querySelector("div"));
+  assert.equal(document.querySelector("h1").getAttribute("contenteditable"), null);
+  assert.equal(document.querySelector("my-note").getAttribute("contenteditable"), null);
+});
+
 test("a custom element opts in with clay-editable", () => {
   setupDom('<!doctype html><html><body><my-note clay-editable><p>text</p></my-note></body></html>');
   const editors = RichClay.init(undefined, { Squire: FakeSquire });

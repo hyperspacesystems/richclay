@@ -545,7 +545,7 @@ var RichClayBundle = (() => {
   }
 
   // src/hyperclay.js
-  var RICHCLAY_SELECTOR = "[data-richclay], [richclay], [editable], [clay-editable]";
+  var RICHCLAY_SELECTOR = '[data-richclay], [richclay], [editable]:not([editable~="plain"]), [clay-editable]:not([clay-editable~="plain"])';
   var RICHCLAY_OPT_IN = "[data-richclay], [richclay], [clay-editable]";
   var EDITABLE_ATTRS = ["editable", "clay-editable"];
   var singleLineSelector = ':is([editable~="single-line"], [clay-editable~="single-line"])';
