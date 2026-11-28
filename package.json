@@ -54,7 +54,9 @@
     "copy-to-clayjs": "npm run build && node scripts/propagate.js --only clayjs",
     "prepublishOnly": "npm run build:global",
     "pretest": "npm run build",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "postpublish": "node scripts/update-demo.mjs",
+    "demo:check": "node scripts/update-demo.mjs --check"
   },
   "devDependencies": {
     "esbuild": "^0.25.5",
