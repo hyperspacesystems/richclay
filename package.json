@@ -20,7 +20,7 @@
     "squire",
     "dompurify",
     "hyperclay",
-    "malleable-html",
+    "html-file-app",
     "dom-first"
   ],
   "main": "src/richclay.js",
