@@ -1,6 +1,6 @@
 # richclay
 
-`richclay` is a small, no-build rich text editor for Hyperclay™-style malleable HTML. It wraps Squire for editing commands and undo/redo, uses DOMPurify for sanitization, and treats the editable element's live DOM as the document source of truth.
+`richclay` is a small, no-build rich text editor for Hyperclay™-style self-saving HTML files. It wraps Squire for editing commands and undo/redo, uses DOMPurify for sanitization, and treats the editable element's live DOM as the source of truth.
 
 The generated toolbar, dialogs, live regions, runtime classes, and `contenteditable` state are editor chrome. They are added only while editing and stripped before Hyperclay serializes the page.
 
