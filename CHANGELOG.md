@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-28
+
 ### Changed
 - `editable="plain"` (and `clay-editable="plain"`) no longer mounts a rich text editor: it is ClayJS core's plain-text field.
 
